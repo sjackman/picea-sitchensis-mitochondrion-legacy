@@ -1,0 +1,8 @@
+brew 'pigz'
+tap 'homebrew/science'
+brew 'bcftools'
+brew 'bwa'
+brew 'edirect'
+brew 'fastqc'
+brew 'samtools'
+brew 'seqtk'
