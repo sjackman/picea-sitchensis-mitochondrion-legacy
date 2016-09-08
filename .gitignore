@@ -1,0 +1,15 @@
+*.bam
+*.bam.bai
+*.fa
+*.fa.fai
+*.fq.gz
+*.log
+*.tsv
+*.vcf.gz
+
+# BWA
+*.fa.amb
+*.fa.ann
+*.fa.bwt
+*.fa.pac
+*.fa.sa
