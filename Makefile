@@ -110,3 +110,10 @@ $(ref).%.vcf.fa: $(ref).%.vcf.gz $(ref).%.vcf.gz.csi $(ref).fa
 bfc/%.fq.gz: %.fq.gz
 	mkdir -p $(@D)
 	bfc -t$t -s1G $< | tr '\t' ' ' | $(gzip) >$@
+
+# ABySS
+
+# Assemble reads.
+abyss/1.9.0/k$k/%-scaffolds.fa: %.fq.gz
+	mkdir -p $(@D)
+	abyss-pe -C $(@D) name=$* k=$k np=$t v=-v in=`realpath $<`
