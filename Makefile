@@ -16,7 +16,7 @@ gzip=pigz -p$t
 # Report run time and memory usage
 export SHELL=zsh -opipefail
 export REPORTTIME=1
-export TIMEFMT=time job=%J user=%U system=%S cpu=%P time=%*E memory=%M
+export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
 
 all:
 
