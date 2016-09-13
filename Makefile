@@ -103,3 +103,10 @@ $(ref).%.vcf.gz: $(ref).%.bam $(ref).fa
 # Call the consensus FASTA sequence of a VCF file
 $(ref).%.vcf.fa: $(ref).%.vcf.gz $(ref).%.vcf.gz.csi $(ref).fa
 	bcftools consensus -f $(ref).fa $< | seqtk seq >$@
+
+# BFC
+
+# Correct errors in reads.
+bfc/%.fq.gz: %.fq.gz
+	mkdir -p $(@D)
+	bfc -t$t -s1G $< | tr '\t' ' ' | $(gzip) >$@
