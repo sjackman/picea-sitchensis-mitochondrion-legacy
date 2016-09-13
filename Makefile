@@ -82,6 +82,10 @@ $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 %.depth.tsv: %.bam
 	(printf "Seq\tPos\tDepth\n"; samtools depth -a $<) >$@
 
+# Convert BAM to FASTQ.
+%.bam.fq.gz: %.bam
+	samtools collate -Ou $< $@ | samtools fastq -F4 /dev/stdin | $(gzip) >$@
+
 # bcftools
 
 # Call variants of reads aligned to a reference.
