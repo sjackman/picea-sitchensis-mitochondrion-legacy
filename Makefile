@@ -1,11 +1,20 @@
-# Annotate and visualize the Sitka spruce (Picea sitchensis) mitochondrion genome
+# Assemble and annotate the Sitka spruce (Picea sitchensis) mitochondrion genome
 # Written by Shaun Jackman @sjackman
 
 # Target genome, Picea sitchensis
 name=psitchensis
 
-# Reference genome, Picea glauca
-ref=LKAM00000000
+# Reference genome
+ref=organelles
+
+# Picea sitchensis plastid
+psitchensiscp=KU215903
+
+# Picea glauca plastid
+pglaucacp=KT634228
+
+# Picea glauca mitochondrion
+pglaucamt=LKAM00000000
 
 # Number of threads
 t=64
