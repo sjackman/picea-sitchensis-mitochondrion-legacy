@@ -118,7 +118,21 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 
 # Convert BAM to FASTQ.
 %.bam.fq.gz: %.bam
-	samtools collate -Ou $< $@ | samtools fastq -F4 /dev/stdin | $(gzip) >$@
+	samtools collate -Ou $< $@ | samtools fastq /dev/stdin | $(gzip) >$@
+
+# Extract the alignment score.
+%.bam.as.tsv: %.bam
+	(echo AS; samtools view -F4 $< | gsed -r 's/.*AS:i:([0-9]*).*/\1/') >$@
+
+# Extract the alignment score, barcode and molecule identifier.
+%.bam.bx.tsv: %.bam
+	samtools view -F4 $< | gawk -F'\t' ' \
+		BEGIN { print "Flags\tRname\tMapq\tAS\tBX\tMI" } \
+		{ as = bx = mi = "NA" } \
+		match($$0, "AS:.:([^\t]*)", x) { as = x[1] } \
+		match($$0, "BX:Z:([^\t]*)", x) { bx = x[1] } \
+		match($$0, "MI:i:([^\t]*)", x) { mi = x[1] } \
+		{ print $$2 "\t" $$3 "\t" $$5 "\t" as "\t" bx "\t" mi }' >$@
 
 # bcftools
 
