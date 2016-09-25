@@ -188,3 +188,9 @@ abyss/2.0.1/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.f
 abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
 	mkdir -p $(@D)
 	time $(abyssbin201)/abyss-pe -C $(@D) name=$* j=$t k=$k kc=$(kc) B=$(B) v=-v in=`realpath $<`
+
+# RMarkdown
+
+# Render RMarkdown to HTML.
+%.html: %.rmd
+	Rscript -e 'rmarkdown::render("$<")'
