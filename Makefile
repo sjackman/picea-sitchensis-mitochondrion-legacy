@@ -174,6 +174,9 @@ k=96
 kc=3
 B=100G
 
+# The total genome size of P. sitchensis plastid and P. glauca mitochondrion
+G=6055308
+
 # Assemble reads with ABySS 1.9.0.
 abyss/1.9.0/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
 	mkdir -p $(@D)
@@ -188,6 +191,18 @@ abyss/2.0.1/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.f
 abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
 	mkdir -p $(@D)
 	time $(abyssbin201)/abyss-pe -C $(@D) name=$* j=$t k=$k kc=$(kc) B=$(B) v=-v in=`realpath $<`
+
+# Calculate assembly contiguity statistics with abyss-fac.
+%.stats.tsv: %.fa
+	$(abyssbin201)/abyss-fac -t500 -G$G $< >$@
+
+abyss-fac.tsv: \
+		KU215903.stats.tsv \
+		pglauca.stats.tsv \
+		abyss/2.0.1/k96/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.stats.tsv
+	mlr --tsvlite cat $^ >$@
 
 # RMarkdown
 
