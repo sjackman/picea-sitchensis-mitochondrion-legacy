@@ -168,8 +168,23 @@ bfc/%.fq.gz: %.fq.gz
 	bfc -t$t -s1G $< | tr '\t' ' ' | $(gzip) >$@
 
 # ABySS
+abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k96/bin
+abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
+k=96
+kc=3
+B=100G
 
-# Assemble reads.
-abyss/1.9.0/k$k/%-scaffolds.fa: %.fq.gz
+# Assemble reads with ABySS 1.9.0.
+abyss/1.9.0/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
 	mkdir -p $(@D)
-	abyss-pe -C $(@D) name=$* k=$k np=$t v=-v in=`realpath $<`
+	time $(abyssbin190)/abyss-pe -C $(@D) name=$* j=$t k=$k v=-v in=`realpath $<`
+
+# Assemble reads with ABySS 2.0.1 with abyss-dbg.
+abyss/2.0.1/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
+	mkdir -p $(@D)
+	time $(abyssbin201)/abyss-pe -C $(@D) name=$* j=$t k=$k v=-v in=`realpath $<`
+
+# Assemble reads with ABySS 2.0.1 abyss-bloom-dbg.
+abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
+	mkdir -p $(@D)
+	time $(abyssbin201)/abyss-pe -C $(@D) name=$* j=$t k=$k kc=$(kc) B=$(B) v=-v in=`realpath $<`
