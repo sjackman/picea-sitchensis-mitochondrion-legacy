@@ -69,6 +69,31 @@ $(ref).%.sam: %.fa $(ref).fa.bwt
 $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 	bwa mem -t$t -p $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
 
+# LongRanger
+
+# Index the target genome.
+refdata-%/fasta/genome.fa.bwt: %.fa
+	longranger mkref $<
+
+# Lanes associated with this sample.
+lane=4
+
+# Align reads to the target genome.
+$(ref)_$(name)_longranger_align/outs/possorted_bam.bam: fastq_path/read-RA_si-TCAAGGCC_lane-004-chunk-006.fastq.gz refdata-$(ref)/fasta/genome.fa.bwt
+	longranger align --id=$(ref)_$(name)_longranger_align --reference=refdata-$(ref) --fastqs=$(<D) --lanes=$(lane)
+
+# Symlink the longranger align bam file.
+$(ref).$(name).longranger.wgs.align.bam: $(ref)_$(name)_longranger_align/outs/possorted_bam.bam
+	ln -sf $< $@
+
+# Align reads to the target genome, call variants, phase variants, and create a Loupe file.
+$(ref)_$(name)_longranger_wgs/outs/phased_possorted_bam.bam: fastq_path/read-RA_si-TCAAGGCC_lane-004-chunk-006.fastq.gz refdata-$(ref)/fasta/genome.fa.bwt
+	longranger wgs --id=$(ref)_$(name)_longranger_wgs --sex=female --reference=refdata-$(ref) --fastqs=$(<D) --lanes=$(lane)
+
+# Symlink the longranger wgs bam file.
+$(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_possorted_bam.bam
+	ln -sf $< $@
+
 # samtools
 
 # Index a FASTA file.
