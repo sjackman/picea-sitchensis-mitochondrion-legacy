@@ -29,7 +29,7 @@ export SHELL=zsh -opipefail
 export REPORTTIME=1
 export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
 
-all:
+all: abyss-fac.tsv samtobreak.tsv quast.tsv
 
 install-deps:
 	brew install pigz
