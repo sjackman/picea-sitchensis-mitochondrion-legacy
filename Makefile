@@ -194,9 +194,21 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 	mkdir -p $(@D)
 	time $(abyssbin201)/abyss-pe -C $(@D) name=$* j=$t k=$k kc=$(kc) B=$(B) v=-v in=`realpath $<`
 
+# Break scaffolds at gaps to produce scaftigs.
+%-scaftigs.fa: %-scaffolds.fa
+	seqtk seq $< | tr _ '~' | $(abyssbin201)/abyss-fatoagp -f $@ >$@.agp
+
 # Calculate assembly contiguity statistics with abyss-fac.
 %.stats.tsv: %.fa
 	$(abyssbin201)/abyss-fac -t500 -G$G $< >$@
+
+# Calculate assembly contiguity and correctness metrics with abyss-samtobreak.
+%.samtobreak.txt: %.sam
+	(echo '==> $< <=='; abyss-samtobreak -l500 $<) >$@
+
+# Convert samtobreak.txt to TSV.
+%.samtobreak.tsv: %.samtobreak.txt
+	abyss-samtobreak-to-tsv $< >$@
 
 # QUAST
 
@@ -215,6 +227,15 @@ abyss-fac.tsv: \
 		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc5/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.stats.tsv
+	mlr --tsvlite cat $^ >$@
+
+samtobreak.tsv: \
+		abyss/2.0.1/k96/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc2/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc10/$(ref).psitchensis-scaftigs.samtobreak.tsv
 	mlr --tsvlite cat $^ >$@
 
 quast.tsv: \
