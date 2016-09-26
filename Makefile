@@ -6,6 +6,8 @@ name=psitchensis
 
 # Reference genome
 ref=organelles
+ref_fa=$(ref).fa
+ref_gff=$(ref).gff
 
 # Picea sitchensis plastid
 psitchensiscp=KU215903
@@ -196,12 +198,31 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 %.stats.tsv: %.fa
 	$(abyssbin201)/abyss-fac -t500 -G$G $< >$@
 
+# QUAST
+
+# Analayze the assembled genomes using QUAST.
+%.quast/$(ref)/transposed_report.tsv: %.fa
+	quast.py -t$t -o $(@D) -R $(ref_fa) -G $(ref_gff) -sLe --fragmented $<
+
+# Aggregate assembly statistics.
+
 abyss-fac.tsv: \
 		KU215903.stats.tsv \
 		pglauca.stats.tsv \
 		abyss/2.0.1/k96/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc2/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.stats.tsv \
-		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.stats.tsv
+		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc5/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.stats.tsv
+	mlr --tsvlite cat $^ >$@
+
+quast.tsv: \
+		abyss/2.0.1/k96/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k96/kc5/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv
 	mlr --tsvlite cat $^ >$@
 
 # RMarkdown
