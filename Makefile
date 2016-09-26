@@ -170,9 +170,9 @@ bfc/%.fq.gz: %.fq.gz
 	bfc -t$t -s1G $< | tr '\t' ' ' | $(gzip) >$@
 
 # ABySS
-abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k96/bin
-abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
-k=96
+abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k128/bin
+abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k128/bin
+k=128
 kc=3
 B=100G
 
