@@ -170,9 +170,9 @@ bfc/%.fq.gz: %.fq.gz
 	bfc -t$t -s1G $< | tr '\t' ' ' | $(gzip) >$@
 
 # ABySS
-abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k128/bin
-abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k128/bin
-k=128
+abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k96/bin
+abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
+k=84
 kc=3
 B=100G
 
@@ -221,29 +221,46 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 abyss-fac.tsv: \
 		KU215903.stats.tsv \
 		pglauca.stats.tsv \
+		abyss/2.0.1/k64/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc2/psitchensis-scaffolds.stats.tsv \
-		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.stats.tsv \
 		abyss/2.0.1/k96/kc5/psitchensis-scaffolds.stats.tsv \
-		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.stats.tsv
+		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k64/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k72/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k76/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k80/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k82/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k84/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k86/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k88/kc3/psitchensis-scaffolds.stats.tsv \
+		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.stats.tsv
 	mlr --tsvlite cat $^ >$@
 
 samtobreak.tsv: \
 		abyss/2.0.1/k96/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k96/kc2/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k96/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k96/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k96/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k96/kc10/$(ref).psitchensis-scaftigs.samtobreak.tsv
+		abyss/2.0.1/k96/kc10/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k64/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k80/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k84/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k88/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv
 	mlr --tsvlite cat $^ >$@
 
 quast.tsv: \
 		abyss/2.0.1/k96/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
-		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
 		abyss/2.0.1/k96/kc4/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
 		abyss/2.0.1/k96/kc5/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
-		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv
+		abyss/2.0.1/k96/kc10/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k64/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k80/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k84/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k88/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv \
+		abyss/2.0.1/k96/kc3/psitchensis-scaffolds.quast/$(ref)/transposed_report.tsv
 	mlr --tsvlite cat $^ >$@
 
 # RMarkdown
