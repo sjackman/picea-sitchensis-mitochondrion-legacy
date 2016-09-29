@@ -1,0 +1,114 @@
+---
+title: ABySS assembly metrics of Picea sitchensis mitochondrion
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r install-packages, eval=FALSE, echo=FALSE}
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("ggrepel")
+install.packages("knitr")
+install.packages("magrittr")
+install.packages("readr")
+install.packages("rmarkdown")
+install.packages("tidyr")
+```
+
+```{r load-libraries, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(knitr)
+library(magrittr)
+library(readr)
+library(tidyr)
+```
+
+```{r read-data}
+assembly_data_orig <- read_tsv("abyss-fac.tsv")
+aligned_data_orig <- read_tsv("samtobreak.tsv")
+```
+
+```{r tidy-data}
+assembly_data <- assembly_data_orig %>%
+	mutate(Directory = dirname(name), File = basename(name)) %>%
+  separate(Directory, c("Assembler", "Version", "k", "kc"), sep = "/", remove = FALSE) %>%
+  mutate(
+    kc = as.integer(sub("kc", "", kc)),
+    k = as.integer(sub("k", "", k))) %>%
+  replace_na(list(kc = 0)) %>%
+	separate(File, c("Species", "Stage", "Ext")) %>%
+	select(-Ext) %>%
+  filter(Assembler != ".")
+
+aligned_data <- aligned_data_orig %>%
+	mutate(Directory = dirname(File), File = basename(File)) %>%
+		separate(File, c("Reference", "Species", "Stage", "Ext")) %>%
+		select(-Reference, -Ext)
+
+scaffold_data <- left_join(aligned_data %>% mutate(Stage = "scaffolds"), assembly_data,
+		by = c("Directory", "Species", "Stage")) %>%
+		mutate(Directory = factor(Directory, unique(Directory)),
+			Stage = factor(Stage, unique(Stage)))
+
+contig_data <- left_join(aligned_data, assembly_data,
+		by = c("Directory", "Species", "Stage")) %>%
+		mutate(Directory = factor(Directory, unique(Directory)),
+			Stage = factor(Stage, unique(Stage)))
+```
+
+# Plot scaffold NG50
+```{r plot-scaffold-NG50}
+ggplot(assembly_data) +
+	aes(x = k, y = NG50, colour = factor(kc), group = factor(kc)) +
+  geom_line() +
+  geom_point() +
+	scale_colour_brewer(name = NULL, palette = "Dark2") +
+	theme_grey(28) +
+	theme(legend.position = c(.75, .25)) +
+  xlim(64, 96)
+```
+
+# Plot scaffold NG50, NA50 and total breakpoints
+```{r plot-scaffold-NA50-breakpoints}
+ggplot(scaffold_data) +
+	aes(x = Total_breakpoints, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
+	xlab("Total breakpoints") + ylab("Scaffold NG50 and NA50 (kbp)") +
+	geom_errorbar(aes(ymin = Scaffold_NA50 / 1e3, ymax = NG50 / 1e3), width = 2) +
+	geom_text_repel(aes(y = NG50 / 1e3),
+		nudge_y = 0.2, segment.color = "#cccccc") +
+	scale_colour_brewer(name = NULL, palette = "Dark2") +
+	theme_grey(28) +
+	theme(legend.position = c(0.1, .8))
+```
+
+# Plot contig NG50, NA50 and total breakpoints
+```{r plot-contig-NA50-breakpoints}
+ggplot(contig_data) +
+	aes(x = Contig_breakpoints, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
+	xlab("Contig breakpoints") + ylab("Contig NG50 and NA50 (kbp)") +
+	geom_errorbar(aes(ymin = Contig_NA50 / 1e3, ymax = NG50 / 1e3), width = 1) +
+	geom_text_repel(aes(y = NG50 / 1e3),
+		nudge_y = 0.2, segment.color = "#cccccc") +
+	theme_grey(28) +
+  theme(legend.position = c(0.1, .8)) +
+  ylim(0, NA)
+```
+
+# Table of metrics
+```{r tabulate-metrics}
+kable(scaffold_data)
+```
+
+# Table of assembly metrics
+```{r tabulate-assembly-metrics}
+kable(assembly_data)
+```
+
+# Table of aligned metrics
+```{r tabulate-aligned-metrics}
+kable(aligned_data)
+```

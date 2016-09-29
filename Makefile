@@ -29,7 +29,7 @@ export SHELL=zsh -opipefail
 export REPORTTIME=1
 export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
 
-all: abyss-fac.tsv samtobreak.tsv quast.tsv
+all: assembly-stats.html
 
 install-deps:
 	brew install pigz
@@ -315,3 +315,7 @@ quast.tsv: \
 # Render RMarkdown to HTML.
 %.html: %.rmd
 	Rscript -e 'rmarkdown::render("$<")'
+
+# Dependencies
+
+assembly-stats.html: abyss-fac.tsv samtobreak.tsv
