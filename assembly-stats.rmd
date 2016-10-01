@@ -60,16 +60,14 @@ contig_data <- left_join(aligned_data, assembly_data,
 			Stage = factor(Stage, unique(Stage)))
 ```
 
-# Plot scaffold NG50
-```{r plot-scaffold-NG50}
+# Plot scaffold and scaftig NG50
+```{r plot-NG50}
 ggplot(assembly_data) +
-	aes(x = k, y = NG50, colour = factor(kc), group = factor(kc)) +
+	aes(x = k, y = NG50, colour = factor(kc), linetype = Stage, group = paste(kc, Stage)) +
   geom_line() +
   geom_point() +
 	scale_colour_brewer(name = NULL, palette = "Dark2") +
-	theme_grey(28) +
-	theme(legend.position = c(.75, .25)) +
-  xlim(64, 96)
+	theme_grey(28)
 ```
 
 # Plot scaffold NG50, NA50 and total breakpoints
@@ -81,8 +79,7 @@ ggplot(scaffold_data) +
 	geom_text_repel(aes(y = NG50 / 1e3),
 		nudge_y = 0.2, segment.color = "#cccccc") +
 	scale_colour_brewer(name = NULL, palette = "Dark2") +
-	theme_grey(28) +
-	theme(legend.position = c(0.1, .8))
+	theme_grey(28)
 ```
 
 # Plot contig NG50, NA50 and total breakpoints
@@ -94,7 +91,6 @@ ggplot(contig_data) +
 	geom_text_repel(aes(y = NG50 / 1e3),
 		nudge_y = 0.2, segment.color = "#cccccc") +
 	theme_grey(28) +
-  theme(legend.position = c(0.1, .8)) +
   ylim(0, NA)
 ```
 
