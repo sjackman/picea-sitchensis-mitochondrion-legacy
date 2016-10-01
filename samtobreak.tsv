@@ -1,5 +1,15 @@
 File	Contig_NA50	Contig_breakpoints	Scaffold_NA50	Scaffold_breakpoints	Total_breakpoints
+abyss/2.0.1/k80/organelles.psitchensis-scaftigs.sam	6325	89	6689	20	109
+abyss/2.0.1/k83/organelles.psitchensis-scaftigs.sam	7716	102	8245	22	124
+abyss/2.0.1/k84/organelles.psitchensis-scaftigs.sam	7908	112	8791	23	135
+abyss/2.0.1/k85/organelles.psitchensis-scaftigs.sam	8485	95	9640	25	120
+abyss/2.0.1/k88/organelles.psitchensis-scaftigs.sam	9513	112	10940	31	143
+abyss/2.0.1/k92/organelles.psitchensis-scaftigs.sam	9769	102	12251	36	138
 abyss/2.0.1/k96/organelles.psitchensis-scaftigs.sam	9637	112	13128	56	168
+abyss/2.0.1/k100/organelles.psitchensis-scaftigs.sam	8457	114	12914	79	193
+abyss/2.0.1/k104/organelles.psitchensis-scaftigs.sam	6612	106	12628	110	216
+abyss/2.0.1/k108/organelles.psitchensis-scaftigs.sam	4830	102	10383	101	203
+abyss/2.0.1/k112/organelles.psitchensis-scaftigs.sam	3206	75	7838	115	190
 abyss/2.0.1/k96/kc2/organelles.psitchensis-scaftigs.sam	4549	89	8619	102	191
 abyss/2.0.1/k64/kc3/organelles.psitchensis-scaftigs.sam	5965	89	7440	28	117
 abyss/2.0.1/k80/kc3/organelles.psitchensis-scaftigs.sam	9385	94	13061	64	158
@@ -12,3 +22,7 @@ abyss/2.0.1/k96/kc4/organelles.psitchensis-scaftigs.sam	5360	89	9038	99	188
 abyss/2.0.1/k64/kc5/organelles.psitchensis-scaftigs.sam	9862	89	12583	55	144
 abyss/2.0.1/k68/kc5/organelles.psitchensis-scaftigs.sam	10776	105	13090	42	147
 abyss/2.0.1/k96/kc5/organelles.psitchensis-scaftigs.sam	3753	68	6391	78	146
+abyss/2.0.1/k48/kc6/organelles.psitchensis-scaftigs.sam	7689	81	9752	42	123
+abyss/2.0.1/k56/kc6/organelles.psitchensis-scaftigs.sam	8932	96	10921	45	141
+abyss/2.0.1/k64/kc6/organelles.psitchensis-scaftigs.sam	9224	94	11649	57	151
+abyss/2.0.1/k68/kc6/organelles.psitchensis-scaftigs.sam	8351	100	10823	62	162
