@@ -90,8 +90,9 @@ ggplot(contig_data) +
   geom_errorbar(aes(ymin = Contig_NA50 / 1e3, ymax = NG50 / 1e3), width = 1) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
-  theme_grey(28) +
-  ylim(0, NA)
+  ylim(0, NA) +
+  scale_colour_brewer(name = NULL, palette = "Dark2") +
+  theme_grey(28)
 ```
 
 # Table of metrics
