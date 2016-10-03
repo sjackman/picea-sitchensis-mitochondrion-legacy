@@ -216,6 +216,20 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 %.quast/$(ref)/transposed_report.tsv: %.fa
 	quast.py -t$t -o $(@D) -R $(ref_fa) -G $(ref_gff) -sLe --fragmented $<
 
+# KAT
+
+# Count k-mers in an assembly.
+%.fa.jf: %.fa
+	kat_jellyfish count -t$t -m40 -s50000000 -o $@ $<
+
+# Count k-mers in reads that also occur in an assembly.
+%.fq.gz.jf: $(name).fq.gz %.fa
+	gunzip -c $< | kat_jellyfish count -t$t -m40 -s50000000 -o $@ --if=$*.fa /dev/stdin
+
+# Analyze the joint k-mer spectrum of reads and an assembly.
+%.kat.comp: %.fq.gz.jf %.fa.jf
+	kat comp -t$t -o $@ $^
+
 # Aggregate assembly statistics.
 
 abyss-fac.tsv: \
