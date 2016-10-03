@@ -16,7 +16,10 @@ psitchensiscp=KU215903
 pglaucacp=KT634228
 
 # Picea glauca mitochondrion
-pglaucamt=LKAM00000000
+pglaucamt=LKAM01
+
+# Picea glauca nuclear genome
+pglaucanuc=ALWZ04
 
 # Number of threads
 t=64
@@ -40,10 +43,35 @@ install-deps:
 .DELETE_ON_ERROR:
 .SECONDARY:
 
-# Fetch data from NCBI
+# Entrez Direct
 
+# Fetch data from NCBI.
 $(name).fa $(ref).fa: %.fa:
 	efetch -db nuccore -id $* -format fasta | seqtk seq | sed 's/^>/>$* /' >$@
+
+# Download the Picea glauca mitochondrion FASTA.
+LKAM.fa:
+	curl ftp://ftp.ncbi.nlm.nih.gov/sra/wgs_aux/LK/AM/LKAM01/LKAM01.1.fsa_nt.gz | gunzip -c | seqtk seq >$@
+
+# Download the Picea glauca mitochondrion GBFF.
+LKAM.gbff:
+	curl ftp://ftp.ncbi.nlm.nih.gov/sra/wgs_aux/LK/AM/LKAM01/LKAM01.1.gbff.gz | gunzip -c >$@
+
+# Download the Picea glauca nuclear FASTA.
+ALWZ.fa.gz:
+	curl ftp://ftp.ncbi.nih.gov/genomes/genbank/plant/Picea_glauca/representative/GCA_000411955.5_PG29_v4.1/GCA_000411955.5_PG29_v4.1_genomic.fna.gz >$@
+
+# Split a FASTA file into 2 GB chunks of sequences.
+%.900.seq %.901.seq %.902.seq %.903.seq %.904.seq %.905.seq %.906.seq %.907.seq %.908.seq %.909.seq %.910.seq %.911.seq %.912.seq %.913.seq %.914.seq %.915.seq %.916.seq %.917.seq %.918.seq %.919.seq %.920.seq %.921.seq %.922.seq %.923.seq %.924.seq %.925.seq %.926.seq %.927.seq %.928.seq %.929.seq %.930.seq %.931.seq %.932.seq %.933.seq %.934.seq %.935.seq %.936.seq %.937.seq %.938.seq %.939.seq %.940.seq %.941.seq %.942.seq %.943.seq %.944.seq %.945.seq: %.fa.gz
+	gunzip -c $< | seqtk seq | sed '/^>/d' | split -a3 -C536870911 --numeric-suffixes=900 --additional-suffix=.seq - $*.
+
+# Construct a concatemer FASTA file of a chunk of sequences.
+ALWZ.%.concat.fa: ALWZ.%.seq
+	echo '>$*' | cat - $< | seqtk seq >$@
+
+# Construct a concatemer FASTA file of the Picea glauca nuclear genome.
+ALWZ.concat.fa: ALWZ.900.concat.fa ALWZ.901.concat.fa ALWZ.902.concat.fa ALWZ.903.concat.fa ALWZ.904.concat.fa ALWZ.905.concat.fa ALWZ.906.concat.fa ALWZ.907.concat.fa ALWZ.908.concat.fa ALWZ.909.concat.fa ALWZ.910.concat.fa ALWZ.911.concat.fa ALWZ.912.concat.fa ALWZ.913.concat.fa ALWZ.914.concat.fa ALWZ.915.concat.fa ALWZ.916.concat.fa ALWZ.917.concat.fa ALWZ.918.concat.fa ALWZ.919.concat.fa ALWZ.920.concat.fa ALWZ.921.concat.fa ALWZ.922.concat.fa ALWZ.923.concat.fa ALWZ.924.concat.fa ALWZ.925.concat.fa ALWZ.926.concat.fa ALWZ.927.concat.fa ALWZ.928.concat.fa ALWZ.929.concat.fa ALWZ.930.concat.fa ALWZ.931.concat.fa ALWZ.932.concat.fa ALWZ.933.concat.fa ALWZ.934.concat.fa ALWZ.935.concat.fa ALWZ.936.concat.fa ALWZ.937.concat.fa ALWZ.938.concat.fa ALWZ.939.concat.fa ALWZ.940.concat.fa ALWZ.941.concat.fa ALWZ.942.concat.fa ALWZ.943.concat.fa ALWZ.944.concat.fa ALWZ.945.concat.fa
+	cat $^ >$@
 
 # seqtk
 
