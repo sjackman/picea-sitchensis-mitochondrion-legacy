@@ -60,6 +60,28 @@ contig_data <- left_join(aligned_data, assembly_data,
       Stage = factor(Stage, unique(Stage)))
 ```
 
+# Plot scaffold NG50
+```{r plot-scaffold-NG50}
+ggplot(assembly_data %>% filter(Stage == "scaffolds")) +
+  aes(x = k, y = NG50, colour = factor(kc), group = paste(kc, Stage)) +
+  geom_line() +
+  geom_point() +
+  scale_colour_brewer(name = NULL, palette = "Dark2") +
+  theme_grey(14) +
+  theme(legend.position = c(.9, .65))
+```
+
+# Plot scaftig NG50
+```{r plot-scaftig-NG50}
+ggplot(assembly_data %>% filter(Stage == "scaftigs")) +
+  aes(x = k, y = NG50, colour = factor(kc), group = paste(kc, Stage)) +
+  geom_line() +
+  geom_point() +
+  scale_colour_brewer(name = NULL, palette = "Dark2") +
+  theme_grey(14) +
+  theme(legend.position = c(.9, .65))
+```
+
 # Plot scaffold and scaftig NG50
 ```{r plot-NG50}
 ggplot(assembly_data) +
@@ -67,7 +89,8 @@ ggplot(assembly_data) +
   geom_line() +
   geom_point() +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
-  theme_grey(28)
+  theme_grey(14) +
+  theme(legend.position = c(.9, .65))
 ```
 
 # Plot scaffold NG50, NA50 and total breakpoints
@@ -79,7 +102,7 @@ ggplot(scaffold_data) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
-  theme_grey(28)
+  theme_grey(14)
 ```
 
 # Plot contig NG50, NA50 and total breakpoints
@@ -92,7 +115,7 @@ ggplot(contig_data) +
     nudge_y = 0.2, segment.color = "#cccccc") +
   ylim(0, NA) +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
-  theme_grey(28)
+  theme_grey(14)
 ```
 
 # Table of metrics
