@@ -436,6 +436,7 @@ abyss-fac.tsv: \
 	mlr --tsvlite cat $^ >$@
 
 samtobreak.tsv: \
+		abyss/2.0.1/k64/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k80/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k83/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k84/$(ref).psitchensis-scaftigs.samtobreak.tsv \
@@ -449,22 +450,67 @@ samtobreak.tsv: \
 		abyss/2.0.1/k104/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k108/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k112/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k96/kc2/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k128/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k64/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k68/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k72/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k74/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k76/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k79/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k80/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k82/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k83/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k84/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k85/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k86/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k87/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k88/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k89/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k96/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k112/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k128/kc3/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k64/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k74/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k75/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k76/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k78/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k79/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k80/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k81/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k83/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k84/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k85/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k86/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k87/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k88/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k89/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k90/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k91/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k96/kc4/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k64/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k65/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k66/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k67/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
 		abyss/2.0.1/k68/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k96/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k48/kc6/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k56/kc6/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k64/kc6/$(ref).psitchensis-scaftigs.samtobreak.tsv \
-		abyss/2.0.1/k68/kc6/$(ref).psitchensis-scaftigs.samtobreak.tsv
+		abyss/2.0.1/k69/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k70/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k72/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k73/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k74/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k75/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k76/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k77/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k78/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k79/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k80/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k81/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k82/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k83/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k84/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k85/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k86/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k94/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv \
+		abyss/2.0.1/k96/kc5/$(ref).psitchensis-scaftigs.samtobreak.tsv
 	mlr --tsvlite cat $^ >$@
 
 quast.tsv: \
