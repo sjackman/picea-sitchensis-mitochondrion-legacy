@@ -101,11 +101,12 @@ ggplot(scaffold_data) +
   geom_errorbar(aes(ymin = Scaffold_NA50 / 1e3, ymax = NG50 / 1e3), width = 2) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
+  coord_cartesian(xlim = c(100, 250)) +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
   theme_grey(14)
 ```
 
-# Plot contig NG50, NA50 and total breakpoints
+# Plot contig NG50, NA50 and contig breakpoints
 ```{r plot-contig-NA50-breakpoints}
 ggplot(contig_data) +
   aes(x = Contig_breakpoints, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
@@ -113,6 +114,7 @@ ggplot(contig_data) +
   geom_errorbar(aes(ymin = Contig_NA50 / 1e3, ymax = NG50 / 1e3), width = 1) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
+  coord_cartesian(xlim = c(50, 150)) +
   ylim(0, NA) +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
   theme_grey(14)
