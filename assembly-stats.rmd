@@ -14,6 +14,7 @@ install.packages("knitr")
 install.packages("magrittr")
 install.packages("readr")
 install.packages("rmarkdown")
+install.packages("rPref")
 install.packages("tidyr")
 ```
 
@@ -24,6 +25,7 @@ library(ggrepel)
 library(knitr)
 library(magrittr)
 library(readr)
+library(rPref)
 library(tidyr)
 ```
 
@@ -58,6 +60,10 @@ contig_data <- left_join(aligned_data, assembly_data,
     by = c("Directory", "Species", "Stage")) %>%
     mutate(Directory = factor(Directory, unique(Directory)),
       Stage = factor(Stage, unique(Stage)))
+
+scaffold_pareto <- scaffold_data %>% psel(low(Total_breakpoints) * high(NG50))
+
+contig_pareto <- contig_data %>% psel(low(Contig_breakpoints) * high(NG50))
 ```
 
 # Plot scaffold NG50
@@ -93,29 +99,38 @@ ggplot(assembly_data) +
   theme(legend.position = c(.9, .65))
 ```
 
-# Plot scaffold NG50, NA50 and total breakpoints
+# Pareto frontier of scaffold NG50, NA50 and total breakpoints
 ```{r plot-scaffold-NA50-breakpoints}
-ggplot(scaffold_data) +
+ggplot(scaffold_pareto) +
   aes(x = Total_breakpoints, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
   xlab("Total breakpoints") + ylab("Scaffold NG50 and NA50 (kbp)") +
   geom_errorbar(aes(ymin = Scaffold_NA50 / 1e3, ymax = NG50 / 1e3), width = 2) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
-  coord_cartesian(xlim = c(100, 250)) +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
   theme_grey(14)
 ```
 
-# Plot contig NG50, NA50 and contig breakpoints
+# Pareto frontier of contig NG50, NA50 and contig breakpoints
 ```{r plot-contig-NA50-breakpoints}
-ggplot(contig_data) +
+ggplot(contig_pareto) +
   aes(x = Contig_breakpoints, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
   xlab("Contig breakpoints") + ylab("Contig NG50 and NA50 (kbp)") +
   geom_errorbar(aes(ymin = Contig_NA50 / 1e3, ymax = NG50 / 1e3), width = 1) +
   geom_text_repel(aes(y = NG50 / 1e3),
     nudge_y = 0.2, segment.color = "#cccccc") +
-  coord_cartesian(xlim = c(50, 150)) +
-  ylim(0, NA) +
+  scale_colour_brewer(name = NULL, palette = "Dark2") +
+  theme_grey(14)
+```
+
+# Pareto frontier of scaffold NG50 and total breakpoints
+```{r plot-pareto-scaffold-NG50-breakpoints}
+ggplot(scaffold_pareto) +
+  aes(x = Total_breakpoints, y = NG50 / 1e3, label = paste0("kc=", kc, " k=", k), colour = factor(kc), group = factor(kc)) +
+  xlab("Total breakpoints") + ylab("Scaffold NG50 (kbp)") +
+  geom_point(data = scaffold_data, colour = "grey") +
+  geom_point() +
+  geom_text_repel(nudge_y = 0.2, segment.color = "#cccccc") +
   scale_colour_brewer(name = NULL, palette = "Dark2") +
   theme_grey(14)
 ```
