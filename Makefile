@@ -113,7 +113,7 @@ $(ref)_$(name)_longranger_align/outs/possorted_bam.bam: fastq_path/read-RA_si-TC
 	longranger align --id=$(ref)_$(name)_longranger_align --reference=refdata-$(ref) --fastqs=$(<D) --lanes=$(lane)
 
 # Symlink the longranger align bam file.
-$(ref).$(name).longranger.wgs.align.bam: $(ref)_$(name)_longranger_align/outs/possorted_bam.bam
+$(ref).$(name).longranger.align.bam: $(ref)_$(name)_longranger_align/outs/possorted_bam.bam
 	ln -sf $< $@
 
 # Align reads to the target genome, call variants, phase variants, and create a Loupe file.
