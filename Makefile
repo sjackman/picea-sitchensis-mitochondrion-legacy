@@ -200,8 +200,8 @@ bfc/%.fq.gz: %.fq.gz
 # ABySS
 abyssbin190=/gsc/btl/linuxbrew/Cellar/abyss/1.9.0-k96/bin
 abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
-k=84
-kc=3
+k=75
+kc=4
 B=100G
 
 # The total genome size of P. sitchensis plastid and P. glauca mitochondrion
