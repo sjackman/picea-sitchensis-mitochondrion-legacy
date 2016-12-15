@@ -1,0 +1,54 @@
+---
+title: Optimize ARCS using Spearmint for Picea sitchensis mitochondrion
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r load-libraries, message=FALSE}
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(knitr)
+library(readr)
+library(tidyr)
+```
+
+# Read data
+```{r read-data}
+spearmint_arcs <- read_tsv("spearmint-arcs.tsv")
+```
+
+# Tidy data
+```{r tidy-data}
+spearmint_arcs_tall <- spearmint_arcs %>%
+	gather("Variable", "Value", -Index)
+```
+
+# Boxplot
+```{r boxplot}
+ggplot(spearmint_arcs_tall) +
+	aes(x = 0, y = Value) +
+	facet_wrap(~Variable, scales = "free") +
+	geom_boxplot()
+```
+
+# Pairs plot
+```{r pairsplot}
+ggpairs(spearmint_arcs %>% select(-Index))
+```
+
+# Plot NG50 vs each parameter
+```{r NG50}
+ggplot(spearmint_arcs %>%
+		gather("Variable", "Value", -NG50)) +
+	aes(x = Value, y = NG50) +
+	facet_wrap(~Variable, scales = "free") +
+	geom_point()
+```
+
+# Table of Spearmint optimization
+```{r tabulate-metrics}
+kable(spearmint_arcs)
+```
