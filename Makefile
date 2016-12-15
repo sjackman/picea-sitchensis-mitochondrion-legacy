@@ -1,8 +1,9 @@
 # Assemble and annotate the Sitka spruce (Picea sitchensis) mitochondrion genome
 # Written by Shaun Jackman @sjackman
 
-# Target genome, Picea sitchensis
+# Target genome, Picea sitchensis mitochondrion
 name=psitchensis
+draft=psitchensismt
 
 # Reference genome
 ref=organelles
@@ -37,7 +38,7 @@ all: assembly-stats.html
 install-deps:
 	brew install pigz
 	brew tap homebrew/science
-	brew install bcftools bwa edirect fastqc samtools seqtk
+	brew install arcs bcftools bwa edirect fastqc samtools seqtk
 
 .PHONY: all clean install-deps
 .DELETE_ON_ERROR:
@@ -95,9 +96,13 @@ ALWZ.concat.fa: ALWZ.900.concat.fa ALWZ.901.concat.fa ALWZ.902.concat.fa ALWZ.90
 $(ref).%.sam: %.fa $(ref).fa.bwt
 	bwa mem -t$t -xintractg $(ref).fa $< >$@
 
-# Align paired-end reads to the target genome.
+# Align paired-end reads to the target genome and sort.
 $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 	bwa mem -t$t -p $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
+
+# Align paired-end reads to the draft genome and do not sort.
+$(draft).%.sortn.bam: %.fq.gz $(draft).fa.bwt
+	bwa mem -t$t -p $(draft).fa $< | samtools view -@$t -h -F4 -o $@
 
 # LongRanger
 
@@ -107,6 +112,14 @@ refdata-%/fasta/genome.fa.bwt: %.fa
 
 # Lanes associated with this sample.
 lane=4
+
+# Extract barcodes using longranger basic.
+$(name)_longranger_basic/outs/barcoded.fastq.gz: fastq_path/read-RA_si-TCAAGGCC_lane-004-chunk-006.fastq.gz
+	longranger basic --id=$(name)_longranger_basic --fastqs=$(<D) --lanes=$(lane)
+
+# Symlink the longranger basic FASTQ file.
+$(name).longranger.basic.fq.gz: $(name)_longranger_basic/outs/barcoded.fastq.gz
+	ln -sf $< $@
 
 # Align reads to the target genome.
 $(ref)_$(name)_longranger_align/outs/possorted_bam.bam: fastq_path/read-RA_si-TCAAGGCC_lane-004-chunk-006.fastq.gz refdata-$(ref)/fasta/genome.fa.bwt
@@ -167,6 +180,11 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 # Extract barcodes with at least 4 good aligned reads per barcode.
 %.bam.bx.atleast4.txt: %.bam.bx.tsv
 	awk 'NR > 1 && $$2 >= 4 {print $$1}' $< >$@
+
+# Extract those reads from a set of barcodes from a FASTQ file.
+%.bx.atleast4.fq.gz: pglauca.%.longranger.align.bam.bx.atleast4.txt %.bx.fq.gz
+	gunzip -c $*.bx.fq.gz | paste - - - - - - - - \
+		| grep -Ff $< | tr '\t' '\n' | $(gzip) >$@
 
 # Extract those reads from a set of barcodes from a BAM file.
 %.bam.bx.atleast4.bam: %.bam.bx.atleast4.txt %.bam
@@ -237,6 +255,37 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 # Convert samtobreak.txt to TSV.
 %.samtobreak.tsv: %.samtobreak.txt
 	abyss-samtobreak-to-tsv $< >$@
+
+# ARCS
+
+# Add the barcode to the read ID, and skip reads without barcodes.
+%.bx.fq.gz: psitchensis.longranger.basic.fq.gz
+	gunzip -c $< | gawk ' \
+		{ bx = "NA" } \
+		match($$0, "BX:Z:([ACGT]*)-1", x) { bx = x[1] } \
+		bx == "NA" { getline; getline; getline; next } \
+		{ print $$1 "_" bx " " $$2; getline; print; getline; print; getline; print }' \
+		| $(gzip) >$@
+
+# Create a graph of linked contigs using ARCS.
+c=3
+e=30000
+r=0.05
+%.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(draft).fa
+	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
+		-f $(draft).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
+	mv $*.c$c_e$e_r$r.arcs_original.gv $@
+
+# Convert the ARCS graph to LINKS TSV format.
+%.arcs.tsv: %.arcs.gv $(draft).fa
+	bin/arcs-makeTSVfile $< $@ $(draft).fa
+
+# Scaffold the assembly using the ARCS graph and LINKS.
+a=0.9
+l=2
+%.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(draft).fa
+	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
+	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(draft).fa -b $*.arcs.a$a_l$l.links
 
 # QUAST
 
