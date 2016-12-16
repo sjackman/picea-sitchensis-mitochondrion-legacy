@@ -48,9 +48,12 @@ ggplot(spearmint_arcs %>%
 # Plot NG50 vs `r`
 ```{r NG50-vs-r}
 ggplot(spearmint_arcs) +
-	aes(x = r, y = NG50, colour = a == 1 & c == 1 & l == 1) +
+	aes(x = r, y = NG50,
+	  colour = a == max(a) & c == min(c) & e == max(e) & l == min(l)) +
 	geom_point() +
-  coord_cartesian(c(0.8, 1.0))
+  scale_colour_manual(values = c("FALSE" = "grey", "TRUE" = "black")) +
+  theme_grey(14) +
+  theme(legend.position="bottom")
 ```
 
 # Tidy data
