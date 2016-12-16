@@ -1,0 +1,21 @@
+{
+    "language"        : "PYTHON",
+    "main-file"       : "spearmint-abyss.py",
+    "experiment-name" : "psitchensis",
+    "likelihood"      : "NOISELESS",
+    "variables" : {
+        "k" : {
+            "type" : "INT",
+            "size" : 1,
+            "min"  : 64,
+            "max"  : 96
+        },
+        "kc" : {
+            "type" : "INT",
+            "size" : 1,
+            "min"  : 3,
+            "max"  : 5
+        }
+    }
+}
+
