@@ -4,36 +4,11 @@
     "experiment-name" : "psitchensismt",
     "likelihood"      : "NOISELESS",
     "variables" : {
-        "c" : {
-            "type" : "INT",
-            "size" : 1,
-            "min"  : 2,
-            "max"  : 5
-        },
-        "e" : {
-            "type" : "INT",
-            "size" : 1,
-            "min"  : 10000,
-            "max"  : 50000
-        },
-        "r" : {
-            "type" : "FLOAT",
-            "size" : 1,
-            "min"  : 0.01,
-            "max"  : 0.10
-        },
-        "a" : {
-            "type" : "FLOAT",
-            "size" : 1,
-            "min"  : 0.5,
-            "max"  : 0.9
-        },
-        "l" : {
-            "type" : "INT",
-            "size" : 1,
-            "min"  : 2,
-            "max"  : 5
-        }
+        "c" : { "type" : "INT", "size" : 1, "min"  : 2, "max"  : 5 },
+        "e" : { "type" : "INT", "size" : 1, "min"  : 10000, "max"  : 50000 },
+        "r" : { "type" : "FLOAT", "size" : 1, "min"  : 0.01, "max"  : 0.10 },
+        "a" : { "type" : "FLOAT", "size" : 1, "min"  : 0.5, "max"  : 0.9 },
+        "l" : { "type" : "INT", "size" : 1, "min"  : 2, "max"  : 5 }
     }
 }
 
