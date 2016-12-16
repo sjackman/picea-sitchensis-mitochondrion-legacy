@@ -38,7 +38,7 @@ all: assembly-stats.html
 install-deps:
 	brew install pigz
 	brew tap homebrew/science
-	brew install arcs bcftools bwa edirect fastqc samtools seqtk
+	brew install arcs bcftools bwa edirect fastqc miller samtools seqtk
 
 .PHONY: all clean install-deps
 .DELETE_ON_ERROR:
@@ -286,6 +286,30 @@ l=2
 %.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(draft).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
 	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(draft).fa -b $*.arcs.a$a_l$l.links
+
+# Spearmint
+
+# Optimize the assembly parameters using Spearmint.
+%.output/00000001.out: %.json %.py
+	rm -rf $*.mongodb && mkdir -p $*.mongodb
+	-test -e $*.mongodb.pid && kill `<$*.mongodb.pid`
+	mongod --fork --logpath $*.mongodb.log --dbpath $*.mongodb \
+		| egrep -o '[0-9]+' >$*.mongodb.pid
+	test -e output -o $*.output -o $*.log && (now=`date '+%Y-%m-%dT%H:%M'`; \
+		mkdir $$now; \
+		-e output && mv output $$now/; \
+		-e $*.output && mv $*.output $$now/; \
+		-e $*.log && mv $*.log $$now/)
+	spearmint --config=$< 2>&1 | tee $*.log
+	mv output $*.output
+
+# Scrape the results of running Spearmint from its log files.
+%.dkvp: %.output/00000001.out %.output/*
+	grep -h NG50= $*.output/* >$@
+
+# Convert DKVP to TSV using Miller
+%.tsv: %.dkvp
+	mlr --tsvlite --idkvp put '$$Index=NR' <$< >$@
 
 # QUAST
 
@@ -585,3 +609,5 @@ quast.tsv: \
 # Dependencies
 
 assembly-stats.html: abyss-fac.tsv samtobreak.tsv
+
+spearmint-arcs.html: spearmint-arcs.tsv
