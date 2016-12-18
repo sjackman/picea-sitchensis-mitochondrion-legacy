@@ -290,22 +290,19 @@ l=1
 # Spearmint
 
 # Optimize the assembly parameters using Spearmint.
-%.output/00000001.out: %.json %.py
-	rm -rf $*.mongodb && mkdir -p $*.mongodb
-	-test -e $*.mongodb.pid && kill `<$*.mongodb.pid`
-	mongod --fork --logpath $*.mongodb.log --dbpath $*.mongodb \
-		| egrep -o '[0-9]+' >$*.mongodb.pid
-	test -e output -o $*.output -o $*.log && (now=`date '+%Y-%m-%dT%H:%M'`; \
-		mkdir $$now; \
-		-e output && mv output $$now/; \
-		-e $*.output && mv $*.output $$now/; \
-		-e $*.log && mv $*.log $$now/)
-	spearmint --config=$< 2>&1 | tee $*.log
-	mv output $*.output
+%/stamp: %.json %.py
+	-if [ -r $(@D)/mongodb/pid ]; then kill `<$(@D)/mongodb/pid`; fi
+	if [ -e $(@D) ]; then mv $(@D) $(@D)-`date '+%Y-%m-%dT%H:%M'`; fi
+	mkdir -p $(@D)/mongodb
+	mongod --fork --dbpath $(@D)/mongodb \
+		--logpath $(@D)/mongodb/log --pidfilepath $(PWD)/$(@D)/mongodb/pid
+	ln -sfn $(@D) output
+	spearmint --config=$< . 2>&1 | tee $*/log
+	touch $@
 
 # Scrape the results of running Spearmint from its log files.
-%.dkvp: %.output/00000001.out %.output/*
-	grep -h NG50= $*.output/* >$@
+%.dkvp: %/log %/*.out
+	grep -h NG50= $(<D)/*.out >$@
 
 # Convert DKVP to TSV using Miller
 %.tsv: %.dkvp
