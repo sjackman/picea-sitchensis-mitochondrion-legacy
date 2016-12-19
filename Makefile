@@ -270,7 +270,7 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 # Create a graph of linked contigs using ARCS.
 c=1
 e=50000
-r=0.857025
+r=0.857084
 %.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(draft).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
 		-f $(draft).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
