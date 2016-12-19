@@ -608,3 +608,5 @@ quast.tsv: \
 assembly-stats.html: abyss-fac.tsv samtobreak.tsv
 
 spearmint-arcs.html: spearmint-arcs.tsv
+
+spearmint-arcs-r.html: spearmint-arcs-r.tsv
