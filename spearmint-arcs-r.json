@@ -1,0 +1,10 @@
+{
+    "language"        : "PYTHON",
+    "main-file"       : "spearmint-arcs.py",
+    "experiment-name" : "psitchensismt",
+    "likelihood"      : "NOISELESS",
+    "variables" : {
+        "r" : { "type" : "FLOAT", "size" : 1, "min"  : 0, "max"  : 1 }
+    }
+}
+
