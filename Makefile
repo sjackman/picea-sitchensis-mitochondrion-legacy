@@ -281,7 +281,7 @@ r=0.857025
 	bin/arcs-makeTSVfile $< $@ $(draft).fa
 
 # Scaffold the assembly using the ARCS graph and LINKS.
-a=1
+a=1.000000
 l=1
 %.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(draft).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
