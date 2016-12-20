@@ -207,6 +207,17 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.metrics.tsv: %.bam.coverage.tsv %.sam.nm.tsv
 	paste $^ | mlr --tsvlite put '$$Identity = 1 - $$NM / $$Aligned; $$QV = -10 * log10(1 - $$Identity); $$File = "$*.sam"' >$@
 
+# htsbox
+
+# Convert BAM format to pairwise-alignment-format (PAF) using htsbox
+%.paf: %.bam
+	htsbox samview -p $< >$@
+
+# Convert PAF format to TSV format
+%.paf.tsv: %.paf
+	(printf "qname\tqlength\tqstart\tqend\tstrand\ttname\ttlength\ttstart\ttend\tdivergence\tmapq\tattributes\n"; \
+		awk 'NF == 12' $<) >$@
+
 # bcftools
 
 # Call variants of reads aligned to a reference.
