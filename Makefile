@@ -270,7 +270,7 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 # Create a graph of linked contigs using ARCS.
 c=1
 e=50000
-r=0.189509
+r=0.220000
 %.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(draft).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
 		-f $(draft).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
@@ -281,7 +281,7 @@ r=0.189509
 	bin/arcs-makeTSVfile $< $@ $(draft).fa
 
 # Scaffold the assembly using the ARCS graph and LINKS.
-a=1.000000
+a=0.999999
 l=1
 %.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(draft).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
