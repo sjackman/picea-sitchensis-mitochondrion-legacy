@@ -12,7 +12,7 @@ def main(job_id, params):
     e = params.get('e', 50000)
     r = params.get('r', 0.05)
     a = params.get('a', 1.0)
-    l = params.get('l', l)
+    l = params.get('l', 1)
     tsv_filename = "psitchensismt.psitchensis.bx.atleast4.c%d_e%d_r%f.arcs.a%f_l%d.links.scaffolds.stats.tsv" % (c, e, r, a, l)
     command = "make c=%d e=%d r=%f a=%f l=%d %s" % (c, e, r, a, l, tsv_filename)
     print command
