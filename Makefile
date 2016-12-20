@@ -190,6 +190,23 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.bam.bx.atleast4.bam: %.bam.bx.atleast4.txt %.bam
 	samtools view -h $*.bam | grep -Ff $< -e '@' | samtools view -b -o $@
 
+# Calculate the genome coverage of a sorted BAM file
+%.bam.coverage.tsv: %.bam
+	samtools view -u -F260 $< | samtools depth - \
+		| mlr --tsvlite --implicit-csv-header stats1 -a sum,count -f 3 \
+		| mlr --tsvlite label Aligned,Covered \
+		| mlr --tsvlite put '$$GenomeSize = $(GwithoutN); $$GenomeCoverage = $$Covered / $$GenomeSize' >$@
+
+# Calculate the number of mismatches in a SAM file
+%.sam.nm.tsv: %.sam
+	samtools view -F260 $< | sed '/NM:i:/!d;s/^.*NM:i://;s/[[:space:]].*//' \
+		| mlr --tsvlite --implicit-csv-header stats1 -a sum -f 1 \
+		| mlr --tsvlite label NM >$@
+
+# Summarize correctness and completeness
+%.metrics.tsv: %.bam.coverage.tsv %.sam.nm.tsv
+	paste $^ | mlr --tsvlite put '$$Identity = 1 - $$NM / $$Aligned; $$QV = -10 * log10(1 - $$Identity); $$File = "$*.sam"' >$@
+
 # bcftools
 
 # Call variants of reads aligned to a reference.
@@ -224,7 +241,9 @@ B=100G
 abyss_scaffolds=abyss/2.0.1/k$k/kc$(kc)/psitchensis-scaffolds
 
 # The total genome size of P. sitchensis plastid and P. glauca mitochondrion
-G=6055308
+GwithN=6118703
+GwithoutN=6055308
+G=$(GwithoutN)
 
 # Assemble reads with ABySS 1.9.0.
 abyss/1.9.0/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
