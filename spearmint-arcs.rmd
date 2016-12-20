@@ -40,7 +40,7 @@ spearmint_arcs <- read_tsv(input_tsv, col_types = cols(
 
 # Report the assembly with the maximum NG50
 ```{r max-NG50}
-spearmint_arcs %>% filter(NG50 == max(NG50))
+spearmint_arcs %>% filter(NG50 == max(NG50)) %>% arrange_(.dots = colnames(.))
 ```
 
 # Plot NG50 vs each parameter
