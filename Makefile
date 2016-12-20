@@ -101,8 +101,8 @@ $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 	bwa mem -t$t -p $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
 
 # Align paired-end reads to the draft genome and do not sort.
-$(draft).%.sortn.bam: %.fq.gz $(draft).fa.bwt
-	bwa mem -t$t -p $(draft).fa $< | samtools view -@$t -h -F4 -o $@
+$(abyss_scaffolds).%.sortn.bam: %.fq.gz $(abyss_scaffolds).fa.bwt
+	bwa mem -t$t -p $(abyss_scaffolds).fa $< | samtools view -@$t -h -F4 -o $@
 
 # LongRanger
 
@@ -221,6 +221,7 @@ abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
 k=75
 kc=4
 B=100G
+abyss_scaffolds=abyss/2.0.1/k$k/kc$(kc)/psitchensis-scaffolds
 
 # The total genome size of P. sitchensis plastid and P. glauca mitochondrion
 G=6055308
@@ -271,21 +272,26 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 c=1
 e=50000
 r=0.220000
-%.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(draft).fa
+%.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(abyss_scaffolds).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
-		-f $(draft).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
+		-f $(abyss_scaffolds).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
 	mv $*.c$c_e$e_r$r.arcs_original.gv $@
 
 # Convert the ARCS graph to LINKS TSV format.
-%.arcs.tsv: %.arcs.gv $(draft).fa
-	bin/arcs-makeTSVfile $< $@ $(draft).fa
+%.arcs.tsv: %.arcs.gv $(abyss_scaffolds).fa
+	bin/arcs-makeTSVfile $< $@ $(abyss_scaffolds).fa
 
 # Scaffold the assembly using the ARCS graph and LINKS.
 a=0.999999
 l=1
-%.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(draft).fa
+%.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(abyss_scaffolds).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
-	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(draft).fa -b $*.arcs.a$a_l$l.links
+	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(abyss_scaffolds).fa -b $*.arcs.a$a_l$l.links
+
+# Rename the scaffolds.
+%/arcs/psitchensis-scaffolds.fa: %/psitchensis-scaffolds.psitchensis.bx.atleast4.c$c_e$e_r$r.arcs.a$a_l$l.links.scaffolds.fa
+	mkdir -p $(@D)
+	gsed -r 's/^>scaffold([^,]*),(.*)/>\1 scaffold\1,\2/' $< >$@
 
 # Spearmint
 
