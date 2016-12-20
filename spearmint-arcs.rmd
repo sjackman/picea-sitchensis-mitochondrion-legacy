@@ -4,6 +4,12 @@ author: Shaun Jackman
 output:
   html_document:
     keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of parameters and target metric"
+    value: "spearmint-arcs.tsv"
+    input: select
+    choices: ["spearmint-arcs.tsv", "spearmint-arcs-r.tsv"]
 ---
 
 ```{r load-libraries, message=FALSE}
@@ -17,11 +23,12 @@ library(tidyr)
 
 ```{r setup}
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv <- params$input_tsv
 ```
 
 # Read data
 ```{r read-data}
-spearmint_arcs <- read_tsv("spearmint-arcs.tsv", col_types = cols(
+spearmint_arcs <- read_tsv(input_tsv, col_types = cols(
   c = col_integer(),
   e = col_integer(),
   r = col_double(),

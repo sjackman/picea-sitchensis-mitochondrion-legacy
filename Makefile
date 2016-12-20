@@ -601,7 +601,7 @@ quast.tsv: \
 
 # Render RMarkdown to HTML.
 %.html: %.rmd
-	Rscript -e 'rmarkdown::render("$<")'
+	Rscript -e 'rmarkdown::render("$<", params=list(input_tsv="$*.tsv"))'
 
 # Dependencies
 
