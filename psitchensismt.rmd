@@ -1,0 +1,98 @@
+---
+title: Inspect alignments of Picea sitchensis contigs
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r load-libraries, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(readr)
+```
+
+```{r setup}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+```
+
+# Read data
+```{r read-data, message=FALSE}
+genome_size <- 6055308
+assembled_size <- 5142672
+organelles_psitchensis_orig <- read_tsv("abyss/2.0.1/k75/kc4/arcs/organelles.psitchensis-scaffolds.paf.tsv") %>%
+  mutate(
+    qalength = qend - qstart,
+    talength = tend - tstart,
+    alength = pmin(qalength, talength),
+    Organelle = ifelse(tname == "KU215903", "Plastid", "Mitochondrion"))
+```
+
+# Hexbin of alignment length and divergence
+```{r hexbinplot-orig}
+ggplot(organelles_psitchensis_orig) +
+  aes(x = alength, y = divergence) +
+  geom_hex()
+```
+
+# Determine alignment thresholds
+```{r compute-threshold}
+divergence_threshold <- 0.1
+qlength_threshold <- 5000
+
+organelles_psitchensis_orig %>%
+  filter(divergence < divergence_threshold) %>%
+  arrange(desc(alength)) %>%
+  distinct(qname, qlength) %>%
+  mutate(Cumsum = cumsum(qlength)) %>%
+  filter(Cumsum < assembled_size) %$%
+  min(qlength)
+```
+
+# Filter data
+```{r filter-data}
+organelles_psitchensis <- organelles_psitchensis_orig %>%
+  filter(qlength >= qlength_threshold & divergence < divergence_threshold)
+
+organelles_psitchensiscp <- organelles_psitchensis %>%
+  filter(Organelle == "Plastid")
+
+organelles_psitchensismt <- organelles_psitchensis %>%
+  filter(Organelle == "Mitochondrion")
+
+report_alignments <- . %>%
+  group_by(qname, qlength) %>%
+  summarise(alignments = n(), alength = sum(alength)) %>%
+  ungroup() %>%
+  summarise(n(), sum(qlength), sum(alength), sum(alignments))
+
+organelles_psitchensis %>% report_alignments
+organelles_psitchensiscp %>% report_alignments
+organelles_psitchensismt %>% report_alignments
+```
+
+# Hexbin of alignment length and divergence
+```{r hexbinplot}
+ggplot(organelles_psitchensismt) +
+  aes(x = alength, y = divergence) +
+  geom_hex()
+```
+
+# Table of mitochondrial scaffolds
+```{r mtscaffold-table}
+mtscaffolds <- organelles_psitchensismt %>% distinct(qname, qlength) %>% arrange(qname)
+paste(mtscaffolds$qname, collapse = " ")
+mtscaffolds %>% arrange(desc(qlength))
+```
+
+# Table of plastid scaffolds
+```{r cpscaffold-table}
+cpscaffolds <- organelles_psitchensiscp %>% distinct(qname, qlength) %>% arrange(qname)
+
+organelles_psitchensis %>%
+  filter(qname %in% cpscaffolds$qname) %>%
+  group_by(qname, qlength, Organelle) %>%
+  summarise(alignments = n(), alength = sum(alength))
+```
