@@ -1,0 +1,91 @@
+---
+title: Explore Chromium Barcode Frequency
+author: Shaun Jackman
+---
+
+# Load packages
+```{r load-packages}
+library(dplyr)
+library(magrittr)
+library(readr)
+library(ggplot2)
+```
+
+# Read data
+```{r read-data}
+bx_filename <- "pglauca.psitchensis.longranger.align.bam.bx.tsv"
+bx_count_filename <- "pglauca.psitchensis.longranger.align.bam.bx.count.tsv"
+data_all <- read_tsv(filename)
+```
+
+# Count reads per barcode
+```{r count-barcodes}
+min_as <- 40
+
+data_good <- data_all %>% filter(bitops::bitAnd(Flags, 2) & AS >= min_as & !is.na(BX))
+data <- data_good %>% filter() %>% count(BX, sort = TRUE) %>% rename(Reads = n)
+glimpse(data)
+
+data %>% filter(Reads >= 1) %$% c(length(Reads), fivenum(Reads))
+data %>% filter(Reads >= 2) %$% c(length(Reads), fivenum(Reads))
+data %>% filter(Reads >= 4) %$% c(length(Reads), fivenum(Reads))
+data %>% filter(Reads >= 6) %$% c(length(Reads), fivenum(Reads))
+```
+
+
+# Write the number of reads per barcode to a file.
+```{r write-barcodes}
+write_tsv(data, bx_count_filename)
+```
+
+# N50 barcode Reads
+```{r N50}
+Nx <- function(x, p = 0.5) { sorted <- rev(sort(x)); sorted[cumsum(sorted) >= sum(sorted) * p][1] }
+
+data$Reads %>% Nx(p = 0.10)
+data$Reads %>% Nx(p = 0.25)
+data$Reads %>% Nx(p = 0.50)
+data$Reads %>% Nx(p = 0.75)
+data$Reads %>% Nx(p = 0.80)
+data$Reads %>% Nx(p = 0.85)
+data$Reads %>% Nx(p = 0.90)
+```
+
+# Plot barcode frequency
+```{r barcodes-point}
+ggplot(data) +
+	aes(x = seq_along(Reads), y = Reads) +
+	geom_point()
+```
+
+# Histogram of barcode frequency
+```{r barcodes-histogram}
+ggplot(data) +
+	aes(x = Reads) +
+	geom_histogram(binwidth = 1) +
+  xlim(0, 50)
+```
+
+# Histogram of barcode frequency
+```{r barcodes-histogram-binned}
+ggplot(data) +
+	aes(x = Reads) +
+	geom_histogram(binwidth = 10, center = 5) +
+  coord_cartesian(xlim = c(0, 100))
+```
+
+# Boxplot of barcode frequency
+```{r barcodes-boxplot}
+ggplot(data) +
+	aes(x = "Barcode", y = Reads) +
+	geom_boxplot() +
+  coord_cartesian(ylim = c(0, 20))
+```
+
+# Boxplot of barcode frequency (Reads >= 4)
+```{r barcodes-boxplot-min-reads}
+ggplot(data %>% filter(Reads >= 4)) +
+	aes(x = "Barcode", y = Reads) +
+	geom_boxplot() +
+  coord_cartesian(ylim = c(0, 20))
+```
