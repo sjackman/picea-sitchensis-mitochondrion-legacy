@@ -348,6 +348,12 @@ l=1
 %.tsv: %.dkvp
 	mlr --tsvlite --idkvp put '$$Index=NR' <$< >$@
 
+# BLAST
+
+# Align sequences to the nt database using BLAST
+%.nt.blastn: %.fa
+	blastn -num_threads $t -db nt -query $< -out $@
+
 # QUAST
 
 # Analayze the assembled genomes using QUAST.
