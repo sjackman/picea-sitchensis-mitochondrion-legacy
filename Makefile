@@ -323,6 +323,10 @@ l=1
 	mkdir -p $(@D)
 	gsed -r 's/^>scaffold([^,]*),(.*)/>\1 scaffold\1,\2/' $< >$@
 
+# Select scaffolds at least 5 kbp.
+%.5kbp.fa: %.fa
+	seqtk seq -L5000 $< >$@
+
 # Spearmint
 
 # Optimize the assembly parameters using Spearmint.
