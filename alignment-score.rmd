@@ -1,0 +1,57 @@
+---
+title: Plot alignment scores
+author: Shaun Jackman
+date: 2016-09-08
+---
+
+# Load packages
+```{r load-packages}
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(readr)
+```
+
+# Read data
+```{r read-data}
+#data_all <- read_tsv("pglauca.psitchensis.proper.bam.as.tsv")
+#data_all <- read_tsv("organelles.psitchensis.proper.bam.as.tsv")
+data_all <- read_tsv("pglauca.psitchensis.longranger.align.bam.bx.tsv")
+#data_all <- read_tsv("organelles.psitchensis.longranger.bam.bx.tsv")
+```
+
+# Descriptive stats
+```{r stats}
+min_as <- 40
+data_good <- data_all %>% filter(AS >= min_as)
+data_all %$% c(length(AS), fivenum(AS))
+data_good %$% c(length(AS), fivenum(AS))
+nrow(data_good) / nrow(data_all)
+```
+
+# Boxplot of all alignment scores
+```{r as-boxplot-all}
+ggplot(data_all) + aes(x = "All", y = AS) + geom_boxplot(coef = 9) + ylim(0, NA)
+```
+
+# Boxplot of good alignment scores
+```{r as-boxplot-good}
+ggplot(data_good) + aes(x = "Good", y = AS) + geom_boxplot() + ylim(0, NA)
+```
+
+# Boxplot of good alignment scores
+```{r as-boxplot-good}
+ggplot(data_good) + aes(x = is.na(Barcode), y = AS) + geom_boxplot() + ylim(0, NA)
+```
+
+# Histogram of all alignment scores
+```{r as-histogram-all}
+ggplot(data_all) + aes(x = AS) + geom_histogram(binwidth = 1)
+ggplot(data_all) + aes(x = AS) + geom_histogram(binwidth = 20, center = 10)
+```
+
+# Histogram of good alignment scores
+```{r as-histogram-good}
+ggplot(data_good) + aes(x = AS) + geom_histogram(binwidth = 1)
+ggplot(data_good) + aes(x = AS) + geom_histogram(binwidth = 20, center = 10)
+```
