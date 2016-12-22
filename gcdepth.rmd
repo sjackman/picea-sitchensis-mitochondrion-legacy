@@ -1,5 +1,5 @@
 ---
-title: GC-Depth plot of contigs
+title: Depth-Length-GC plot of contigs
 author: Shaun Jackman
 output:
   html_document:
@@ -12,6 +12,8 @@ library(ggplot2)
 library(knitr)
 library(magrittr)
 library(readr)
+library(purrr)
+library(tidyr)
 ```
 
 ```{r setup}
@@ -20,47 +22,86 @@ knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>
 
 # Read data
 ```{r read-data, message=FALSE}
-composition <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.fa.comp.tsv")
-depth_orig <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.psitchensis.bx.atleast4.as100.bam.depth.tsv") %>%
-  rename(Name = Seq)
-best_hits <- read_tsv("abyss/2.0.1/k75/kc4/organelles.psitchensis-scaffolds.primary.as100.bam.names.tsv") %>%
+composition <- read_tsv("abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.fa.comp.tsv")
+best_hits <- read_tsv("abyss/2.0.1/k75/kc4/arcs/organelles.psitchensis-scaffolds.primary.as100.bam.names.tsv") %>%
   rename(Name = QName) %>%
   mutate(Organelle = ifelse(TName == "KU215903", "Plastid", "Mitochondrion")) %>%
   arrange(Name)
+depth <- read_tsv("abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.psitchensis.bx.atleast4.as100.bam.depth.stats.tsv") %>%
+  select(Name = Seq, Depth = Depth_p50)
 ```
 
 # Munge data
 ```{r munge}
-depth <- depth_orig %>% group_by(Name) %>% summarise(Depth = median(Depth))
+length_threshold <- 2000
+
 composition_depth <- composition %>%
   left_join(depth, by = "Name") %>%
   left_join(best_hits, by = "Name") %>%
-  filter(!is.na(Depth) & NumACGT >= 1000)
+  replace_na(list(Organelle = "Unknown"))
+
+composition_depth_large <- composition_depth %>%
+  filter(NumACGT >= length_threshold)
+```
+
+# Plot length vs depth
+```{r plot-length-depth-point}
+plot_length_depth_point <- ggplot(composition_depth %>% filter(NumACGT > 500)) +
+  aes(x = Depth, y = NumACGT, colour = Organelle, size = NumACGT) +
+  scale_colour_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
+  geom_point(alpha = 0.2) +
+  geom_hline(yintercept = length_threshold, colour = "pink")
+plot_length_depth_point +
+  scale_x_log10(breaks = c(10, 20, 50, 100, 200, 500, 1000)) +
+  scale_y_log10(breaks = c(1e3, 1e4, 1e5, 1e6))
+plot_length_depth_point
+plot_length_depth_point + coord_cartesian(c(0, 100), c(0, 20000))
 ```
 
 # Plot GC content vs depth
 ```{r plot-gc-depth-point}
-ggplot(composition_depth) +
+plot_gc_content_depth <- ggplot(composition_depth_large) +
   aes(x = Depth, y = GC, colour = Organelle, size = NumACGT) +
-  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green"), na.value = "blue") +
-  geom_point(alpha = 0.2)
+  scale_colour_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
+  geom_point(alpha = 0.5)
+plot_gc_content_depth
+plot_gc_content_depth + coord_cartesian(c(0, 100))
 ```
 
-
-# Hexbin plot GC content vs depth
+# Tile of GC content vs depth
 ```{r plot-gc-depth-bin2d}
-ggplot(composition_depth) +
-  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT, weight = NumACGT) +
-  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
+ggplot(composition_depth_large) +
+  aes(x = Depth, y = GC, fill = Organelle, size = NumACGT, weight = NumACGT) +
+  scale_fill_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
   geom_bin2d()
 
-ggplot(composition_depth %>% filter(Depth < 100)) +
-  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT, weight = NumACGT) +
-  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
+ggplot(composition_depth_large %>% filter(Depth < 100)) +
+  aes(x = Depth, y = GC, fill = Organelle, size = NumACGT, weight = NumACGT) +
+  scale_fill_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
   geom_bin2d()
 ```
 
-# Table of reconstruction
-```{r table}
-composition_depth %>% summarise(Assembled_size = sum(NumACGT))
+# Table of mitochondrial and unknown scaffolds larger than a threshold
+```{r table-assembly-size}
+c(5000, 2000, 1000, 500) %>% map(function(x)
+  composition_depth %>%
+    filter(Organelle != "Plastid" & NumACGT >= x) %>%
+    summarise(Length_threshold = x, Assembled_size = sum(NumACGT))
+) %>% do.call(rbind, .)
+```
+
+# Table of mitochondrial scaffolds larger than 500 bp and unknown scaffolds larger than a threshold
+```{r table-assembly-size-mito500}
+c(Inf, 5000, 2000, 1000, 500) %>% map(function(x)
+  composition_depth %>%
+    filter((Organelle == "Mitochondrion" & NumACGT >= 500) | (Organelle == "Unknown" & NumACGT >= x)) %>%
+    summarise(Length_threshold = x, Assembled_size = sum(NumACGT))
+) %>% do.call(rbind, .)
+```
+
+# Table of plastid scaffolds
+```{r table-plastid-scaffolds}
+composition_depth_large %>%
+  filter(Organelle == "Plastid") %>%
+  select(Name, Length, NumACGT, GC, Depth)
 ```
