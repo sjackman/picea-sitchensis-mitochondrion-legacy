@@ -80,6 +80,10 @@ ALWZ.concat.fa: ALWZ.900.concat.fa ALWZ.901.concat.fa ALWZ.902.concat.fa ALWZ.90
 %.fq.gz: %_1.fq.gz %_2.fq.gz
 	seqtk mergepe $^ | $(gzip) >$@
 
+# Calculate the nucleotide composition of FASTA
+%.fa.comp.tsv: %.fa
+	(printf "Name\tLength\tNumA\tNumC\tNumG\tNumT\n"; seqtk comp $< | cut -f1-6) | mlr --tsvlite put '$$NumACGT = $$NumA + $$NumC + $$NumG + $$NumT; $$GC = ($$NumC + $$NumG) / $$NumACGT' >$@
+
 # FASTQC
 
 %.fastqc: %.fq.gz
@@ -98,11 +102,15 @@ $(ref).%.sam: %.fa $(ref).fa.bwt
 
 # Align paired-end reads to the target genome and sort.
 $(ref).%.bam: %.fq.gz $(ref).fa.bwt
-	bwa mem -t$t -p $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
+	bwa mem -t$t -pC $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
 
 # Align paired-end reads to the draft genome and do not sort.
 $(abyss_scaffolds).%.sortn.bam: %.fq.gz $(abyss_scaffolds).fa.bwt
-	bwa mem -t$t -p $(abyss_scaffolds).fa $< | samtools view -@$t -h -F4 -o $@
+	bwa mem -t$t -pC $(abyss_scaffolds).fa $< | samtools view -@$t -h -F4 -o $@
+
+# Sort a query-name-sorted BAM file by target.
+%.bam: %.sortn.bam
+	samtools sort -@$t -o $@ $<
 
 # LongRanger
 
@@ -156,7 +164,7 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 	samtools view -Obam -f2 -o $@ $<
 
 # Calculate depth of coverage.
-%.depth.tsv: %.bam
+%.bam.depth.tsv: %.bam
 	(printf "Seq\tPos\tDepth\n"; samtools depth -a $<) >$@
 
 # Convert BAM to FASTQ.
@@ -206,6 +214,15 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 # Summarize correctness and completeness
 %.metrics.tsv: %.bam.coverage.tsv %.sam.nm.tsv
 	paste $^ | mlr --tsvlite put '$$Identity = 1 - $$NM / $$Aligned; $$QV = -10 * log10(1 - $$Identity); $$File = "$*.sam"' >$@
+
+# Remove alignments with an alignment score below a threshold.
+%.as100.bam: %.bam
+	samtools view -h -F4 $< | gawk -F'\t' ' \
+			/^@/ { print; next } \
+			{ as = 0 } \
+			match($$0, "AS:.:([^\t]*)", x) { as = x[1] } \
+			as >= 100' \
+		| samtools view -@$t -b -o $@
 
 # htsbox
 
