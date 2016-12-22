@@ -20,25 +20,30 @@ knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>
 
 # Read data
 ```{r read-data, message=FALSE}
-composition_orig <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.fa.comp.tsv")
+composition <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.fa.comp.tsv")
 depth_orig <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.psitchensis.bx.atleast4.as100.bam.depth.tsv") %>%
-    rename(Name = Seq)
+  rename(Name = Seq)
+best_hits <- read_tsv("abyss/2.0.1/k75/kc4/organelles.psitchensis-scaffolds.primary.as100.bam.names.tsv") %>%
+  rename(Name = QName) %>%
+  mutate(Organelle = ifelse(TName == "KU215903", "Plastid", "Mitochondrion")) %>%
+  arrange(Name)
 ```
 
 # Munge data
 ```{r munge}
-plastid_scaffolds <- NULL
-composition <- composition_orig %>% mutate(Organelle = ifelse(Name %in% plastid_scaffolds, "Plastid", "Mitochondrion"))
 depth <- depth_orig %>% group_by(Name) %>% summarise(Depth = median(Depth))
-composition_depth <- composition %>% left_join(depth) %>% filter(!is.na(Depth) & NumACGT >= 1000)
+composition_depth <- composition %>%
+  left_join(depth, by = "Name") %>%
+  left_join(best_hits, by = "Name") %>%
+  filter(!is.na(Depth) & NumACGT >= 1000)
 ```
 
 # Plot GC content vs depth
 ```{r plot-gc-depth-point}
 ggplot(composition_depth) +
   aes(x = Depth, y = GC, colour = Organelle, size = NumACGT) +
-  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
-  geom_point(alpha = 0.3)
+  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green"), na.value = "blue") +
+  geom_point(alpha = 0.2)
 ```
 
 
