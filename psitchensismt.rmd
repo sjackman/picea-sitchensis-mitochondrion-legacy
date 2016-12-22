@@ -89,10 +89,17 @@ mtscaffolds %>% arrange(desc(qlength))
 
 # Table of plastid scaffolds
 ```{r cpscaffold-table}
-cpscaffolds <- organelles_psitchensiscp %>% distinct(qname, qlength) %>% arrange(qname)
+cphits <- organelles_psitchensiscp %>% distinct(qname)
 
 organelles_psitchensis %>%
-  filter(qname %in% cpscaffolds$qname) %>%
+  filter(qname %in% cphits$qname) %>%
   group_by(qname, qlength, Organelle) %>%
   summarise(alignments = n(), alength = sum(alength))
+
+organelles_psitchensiscp %>%
+  group_by(qname, qlength, Organelle) %>%
+  summarise(alignments = n(), alength = sum(alength)) %>%
+  filter(alength >= 2000) %>%
+  ungroup() %>%
+  distinct(qname, qlength, Organelle)
 ```
