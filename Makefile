@@ -215,6 +215,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.metrics.tsv: %.bam.coverage.tsv %.sam.nm.tsv
 	paste $^ | mlr --tsvlite put '$$Identity = 1 - $$NM / $$Aligned; $$QV = -10 * log10(1 - $$Identity); $$File = "$*.sam"' >$@
 
+# Remove secondary, supplementary and mapq=0 alignments.
+%.primary.bam: %.bam
+	samtools view -b -F0x900 -q1 -o $@ $<
+
 # Remove alignments with an alignment score below a threshold.
 %.as100.bam: %.bam
 	samtools view -h -F4 $< | gawk -F'\t' ' \
@@ -223,6 +227,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 			match($$0, "AS:.:([^\t]*)", x) { as = x[1] } \
 			as >= 100' \
 		| samtools view -@$t -b -o $@
+
+# Extract the query and target name from a BAM file.
+%.bam.names.tsv: %.bam
+	(printf "QName\tTName\n"; samtools view $< | cut -f1,3) >$@
 
 # htsbox
 
