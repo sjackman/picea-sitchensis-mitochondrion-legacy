@@ -167,6 +167,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.bam.depth.tsv: %.bam
 	(printf "Seq\tPos\tDepth\n"; samtools depth -a $<) >$@
 
+# Calculate depth of coverage statistics per sequence.
+%.bam.depth.stats.tsv: %.bam.depth.tsv
+	mlr --tsvlite stats1 -a count,p25,p50,p75,mean,stddev -f Depth -g Seq $< >$@
+
 # Convert BAM to FASTQ.
 %.bam.fq.gz: %.bam
 	samtools collate -Ou $< $@ | samtools fastq /dev/stdin | $(gzip) >$@
@@ -206,13 +210,13 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 		| mlr --tsvlite put '$$GenomeSize = $(GwithoutN); $$GenomeCoverage = $$Covered / $$GenomeSize' >$@
 
 # Calculate the number of mismatches in a SAM file
-%.sam.nm.tsv: %.sam
+%.bam.nm.tsv: %.bam
 	samtools view -F260 $< | sed '/NM:i:/!d;s/^.*NM:i://;s/[[:space:]].*//' \
 		| mlr --tsvlite --implicit-csv-header stats1 -a sum -f 1 \
 		| mlr --tsvlite label NM >$@
 
 # Summarize correctness and completeness
-%.metrics.tsv: %.bam.coverage.tsv %.sam.nm.tsv
+%.bam.metrics.tsv: %.bam.coverage.tsv %.bam.nm.tsv
 	paste $^ | mlr --tsvlite put '$$Identity = 1 - $$NM / $$Aligned; $$QV = -10 * log10(1 - $$Identity); $$File = "$*.sam"' >$@
 
 # Remove secondary, supplementary and mapq=0 alignments.
