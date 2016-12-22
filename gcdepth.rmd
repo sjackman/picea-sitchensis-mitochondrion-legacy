@@ -1,0 +1,61 @@
+---
+title: GC-Depth plot of contigs
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r load-libraries, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(readr)
+```
+
+```{r setup}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+```
+
+# Read data
+```{r read-data, message=FALSE}
+composition_orig <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.fa.comp.tsv")
+depth_orig <- read_tsv("abyss/2.0.1/k75/kc4/psitchensis-scaffolds.psitchensis.bx.atleast4.as100.bam.depth.tsv") %>%
+    rename(Name = Seq)
+```
+
+# Munge data
+```{r munge}
+plastid_scaffolds <- NULL
+composition <- composition_orig %>% mutate(Organelle = ifelse(Name %in% plastid_scaffolds, "Plastid", "Mitochondrion"))
+depth <- depth_orig %>% group_by(Name) %>% summarise(Depth = median(Depth))
+composition_depth <- composition %>% left_join(depth) %>% filter(!is.na(Depth) & NumACGT >= 1000)
+```
+
+# Plot GC content vs depth
+```{r plot-gc-depth-point}
+ggplot(composition_depth) +
+  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT) +
+  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
+  geom_point(alpha = 0.3)
+```
+
+
+# Hexbin plot GC content vs depth
+```{r plot-gc-depth-bin2d}
+ggplot(composition_depth) +
+  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT, weight = NumACGT) +
+  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
+  geom_bin2d()
+
+ggplot(composition_depth %>% filter(Depth < 100)) +
+  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT, weight = NumACGT) +
+  scale_colour_manual(values = c(Mitochondrion = "black", Plastid = "green")) +
+  geom_bin2d()
+```
+
+# Table of reconstruction
+```{r table}
+composition_depth %>% summarise(Assembled_size = sum(NumACGT))
+```
