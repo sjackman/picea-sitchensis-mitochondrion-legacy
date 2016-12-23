@@ -44,6 +44,11 @@ install-deps:
 .DELETE_ON_ERROR:
 .SECONDARY:
 
+# Symlink the draft genome.
+
+psitchensismt.1.fa: abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.nocp.2kbp.fa
+	ln -sf $< $@
+
 # Entrez Direct
 
 # Fetch data from NCBI.
@@ -352,9 +357,25 @@ l=1
 	mkdir -p $(@D)
 	gsed -r 's/^>scaffold([^,]*),(.*)/>\1 scaffold\1,\2/' $< >$@
 
+# Select scaffolds at least 2 kbp.
+%.2kbp.fa: %.fa
+	seqtk seq -L2000 $< >$@
+
 # Select scaffolds at least 5 kbp.
 %.5kbp.fa: %.fa
 	seqtk seq -L5000 $< >$@
+
+# Identify plastid scaffolds.
+%/psitchensis-scaffolds.fa.cp: %/$(ref).psitchensis-scaffolds.primary.bam.names.tsv
+	awk 'NR > 1 && $$2 == "$(psitchensiscp)" {print $$1}' $< | sort -n >$@
+
+# Identify non-plastid scaffolds.
+%.fa.nocp: %.fa.fai %.fa.cp
+	cut -f1 $< | grep -vwFf $*.fa.cp >$@
+
+# Remove plastid scaffolds.
+%.nocp.fa: %.fa %.fa.nocp
+	seqtk subseq $< $<.nocp >$@
 
 # Spearmint
 
