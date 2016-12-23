@@ -1,8 +1,8 @@
-# Annotate and visualize the white spruce mitochondrial genome
-# Copyright 2015 Shaun Jackman
+# Annotate and visualize the Sitka spruce mitochondrial genome
+# Copyright 2016 Shaun Jackman
 
 # Name of the assembly
-name=pg29mt-scaffolds
+name=psitchensismt.1
 
 # Number of threads
 t=4
@@ -59,7 +59,7 @@ $(name).%.sort.bam.bai: $(name).fa %.fa.gz
 
 # Fetch data from NCBI
 
-cds_aa.orig.fa cds_na.orig.fa: %.fa:
+cds_aa.orig.fa cds_na.orig.fa: %.orig.fa:
 	esearch -db nuccore -query $(edirect_query) \
 		|efetch -format fasta_$* >$@
 
@@ -198,7 +198,7 @@ maker_exe.ctl:
 rmlib.fa: PICEAGLAUCA_rpt2.0.fa $(name).RepeatModeler.fa
 	cat $^ >$@
 
-%.maker.output/stamp: maker_opts.ctl %.fa cds_aa.fa rmlib.fa
+%.maker.output/stamp: maker_opts.ctl %.fa cds_aa.fa
 	maker -fix_nucleotides -cpus $t
 	touch $@
 
@@ -229,14 +229,13 @@ $(name).maker.gff: $(name).aragorn.gff
 
 # Convert the FASTA file to the Prokka FASTA format
 cds_aa.prokka.fa: %.prokka.fa: %.fa
-	sed -E 's/^>([^ ]*) .*gene=([^]]*).*protein=([^]]*).*$$/>\1 ~~~\2~~~\3/; \
-		s/^-//' $< >$@
+	gsed -E 's/^>([^ ]*) .*gene=([^]]*).*protein=([^]]*).*$$/>\1 ~~~\2~~~\3/;s/^-//' $< >$@
 
 # Annotate genes using Prokka
 prokka/%.gff: %.fa cds_aa.prokka.fa
 	prokka --kingdom bac --gcode 1 --addgenes --proteins cds_aa.prokka.fa --rnammer \
 		--cpus $t \
-		--genus Picea --species 'glauca mitochondrion' \
+		--genus Picea --species 'sitchensis mitochondrion' \
 		--locustag ABT39_MT \
 		--force --outdir prokka --prefix $* \
 		$<
@@ -420,7 +419,7 @@ gbk/%.00.gbk: %.gbk
 %.fsa: %.fa
 	seqtk seq $< \
 		|sed -E -e '/^>(33|36)$$/{N;d;}' \
-			-e 's/^>.*/& [organism=Picea glauca] [location=mitochondrion] [completeness=draft] [topology=linear] [gcode=1]/' \
+			-e 's/^>.*/& [organism=Picea sitchensis] [location=mitochondrion] [completeness=draft] [topology=linear] [gcode=1]/' \
 			>$@
 
 # tbl2asn
@@ -428,7 +427,7 @@ gbk/%.00.gbk: %.gbk
 # Convert TBL to GBK and SQN
 %.gbf %.sqn: %.fsa %.sbt %.tbl %.cmt %.pep
 	tbl2asn -a s -i $< -t $*.sbt -w $*.cmt -Z $*.discrep -Vbv
-	gsed -i 's/DEFINITION  Picea glauca/& mitochondrion draft genome/' $*.gbf
+	gsed -i 's/DEFINITION  Picea sitchensis/& mitochondrion draft genome/' $*.gbf
 
 # Render HTML from RMarkdown
 %.html: %.rmd
@@ -437,6 +436,6 @@ gbk/%.00.gbk: %.gbk
 
 # Dependencies
 
-genes.html: pg29mt-scaffolds.gff
+genes.html: $(name).gff
 
-repeats.html: pg29mt-scaffolds.maker.repeat.gff
+repeats.html: $(name).maker.repeat.gff
