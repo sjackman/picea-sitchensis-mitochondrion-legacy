@@ -400,9 +400,32 @@ l=1
 
 # BLAST
 
-# Align sequences to the nt database using BLAST
+# Align sequences to the nt database using blastn
 %.nt.blastn: %.fa
 	blastn -num_threads $t -db nt -query $< -out $@
+
+# Align sequences to the nt database using blastn and report TSV
+%.nt.blastn.tsv: %.fa
+	(printf "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tstaxid\tsskingdom\tssciname\tstitle\n"; \
+		blastn -num_threads $t -db nt -outfmt '7 std staxid sskingdom ssciname stitle' -query $<) >$@
+
+# Align sequences to the nt database using blastn and report TSV of the best alignment
+%.nt.blastn.best.tsv: %.fa
+	(printf "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tstaxid\tsskingdom\tssciname\tstitle\n"; \
+		blastn -num_threads $t -db nt -outfmt '7 std staxid sskingdom ssciname stitle' -num_alignments 1 -query $<) >$@
+
+# Align sequences to the nt database using blastn and report SAM
+%.nt.blastn.sam: %.fa
+	blastn -num_threads $t -db nt -outfmt 17 -query $< >$@
+
+# Align sequences to the nt database using blastn and output an organism report
+%.nt.blastn.organism: %.fa
+	blastn -num_threads $t -db nt -outfmt 18 -query $< -out $@
+
+# Align sequences to the nt database using blastx and report TSV of the best alignment
+%.nr.blastx.best.tsv: %.fa
+	(printf "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tstaxid\tsskingdom\tssciname\tstitle\n"; \
+		blastx -num_threads $t -db nr -outfmt '7 std staxid sskingdom ssciname stitle' -num_alignments 1 -query $<) >$@
 
 # QUAST
 
