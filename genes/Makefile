@@ -78,8 +78,8 @@ cds_aa.fa cds_na.fa: %.fa: %.orig.fa
 		--pattern-replace 'gene=yejV' 'gene=ccmB' \
 		--pattern-replace 'gene=18S rRNA' 'gene=40' \
 		$< - \
-	|gsed -E '/protein=[^]]*intron[^]]*ORF/s/gene=/gene=ymf/; \
-		s/^>(.*gene=([^]]*).*)$$/>\2|\1/' \
+	|gsed -E -e '/protein=[^]]*intron[^]]*ORF/s/gene=/gene=ymf/' \
+		-e 's/^>(.*gene=([^]]*).*)$$/>\2|\1/' \
 	|seqmagick -q convert --pattern-exclude '^lcl' --deduplicate-taxa - $@
 
 # Extract accession numbers from the FASTA file
@@ -213,10 +213,9 @@ rmlib.fa: PICEAGLAUCA_rpt2.0.fa $(name).RepeatModeler.fa
 
 %.maker.gff: %.maker.orig.gff
 	gt gff3 -sort $^ \
-	|gsed -E ' \
-		/\tintron\t/d; \
-		s/Name=trnascan-[^-]*-noncoding-([^-]*)-gene/Name=trn\1/g; \
-		/\trRNA\t/s/ID=([^;]*)s_rRNA/Name=rrn\1;&/g' \
+	|gsed -E -e '/\tintron\t/d' \
+		-e 's/Name=trnascan-[^-]*-noncoding-([^-]*)-gene/Name=trn\1/g' \
+		-e '/\trRNA\t/s/ID=([^;]*)s_rRNA/Name=rrn\1;&/g' \
 	|gt gff3 -addintrons -sort - >$@
 
 # Add the rRNA annotations to the GFF file
@@ -242,13 +241,11 @@ prokka/%.gff: %.fa cds_aa.prokka.fa
 
 # Remove the FASTA section from the Prokka GFF file
 %.prokka.gff: prokka/%.gff
-	gsed -E '/^##FASTA/,$$d; \
-		s/gene=([^;]*)/Name=\1;&/; \
-		/\tgene\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/;}; \
-		/\tCDS\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/; \
-			s/CDS/mRNA/;p; \
-			s/mRNA/CDS/;s/Parent=[^;]*;//;s/ID=/Parent=/;}; \
-		' $< >$@
+	gsed -E -e '/^##FASTA/,$$d' \
+		-e 's/gene=([^;]*)/Name=\1;&/' \
+		-e '/\tgene\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/;}' \
+		-e '/\tCDS\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/; s/CDS/mRNA/;p; s/mRNA/CDS/;s/Parent=[^;]*;//;s/ID=/Parent=/;}' \
+		$< >$@
 
 # Report the genes annotated by Prokka
 prokka/%.gff.gene: prokka/%.gff
@@ -272,9 +269,7 @@ prokka/%.gff.gene: prokka/%.gff
 		$*.pregbk.gb >$@
 
 %.gbk: %-header.gbk %.gb
-	(cat $< && gsed -En '/^FEATURES/,$$ { \
-		s/Name="([^|]*).*"/gene="\1"/; \
-		p; }' $*.gb) >$@
+	(cat $< && gsed -En '/^FEATURES/,$${s/Name="([^|]*).*"/gene="\1"/;p;}' $*.gb) >$@
 
 # Merge MAKER and Prokka annotations using bedtools
 %.maker.prokka.gff: %.prokka.gff %.maker.gff
