@@ -84,7 +84,7 @@ cds_aa.fa cds_na.fa: %.fa: %.orig.fa
 
 # Extract accession numbers from the FASTA file
 %.id: %.orig.fa
-	sed '/^>/!d;s/.*lcl|//;s/_prot_.*//' cds_aa.orig.fa |uniq |sort -u >$@
+	gsed '/^>/!d;s/.*lcl|//;s/_prot_.*//' cds_aa.orig.fa |uniq |sort -u >$@
 
 # Fetch the records
 %.docsum.xml: %.id
@@ -184,7 +184,7 @@ mitochondrion/mitochondrion.%.gz:
 # Convert GFF2 to GFF3
 %.rnammer.gff: %.rnammer.gff2
 	bin/convert_RNAmmer_to_gff3.pl --input=$< \
-		|sed -E -e 's/ID=([^s]*)s_rRNA_([0-9]*)/Name=rrn\1;&/' \
+		|gsed -E -e 's/ID=([^s]*)s_rRNA_([0-9]*)/Name=rrn\1;&/' \
 			-e 's/rrn16/rrn18/g;s/rrn23/rrn26/g' >$@
 
 # MAKER
@@ -262,35 +262,35 @@ prokka/%.gff.gene: prokka/%.gff
 
 # Add leading zeros to the FASTA IDs
 %.pregbk.fa: %.fa
-	sed '/^>[0-9]$$/s/^>/>0/' $< >$@
+	gsed '/^>[0-9]$$/s/^>/>0/' $< >$@
 
 # Convert to GenBank format
 %.gb: %.pregbk.gff %.pregbk.fa
 	bin/gff_to_genbank.py $^
-	sed -e '/DEFINITION/{h;s/$$/ mitochondrion/;}' \
+	gsed -e '/DEFINITION/{h;s/$$/ mitochondrion/;}' \
 		-e '/ORGANISM/{g;s/DEFINITION/  ORGANISM/;}' \
 		$*.pregbk.gb >$@
 
 %.gbk: %-header.gbk %.gb
-	(cat $< && sed -En '/^FEATURES/,$$ { \
+	(cat $< && gsed -En '/^FEATURES/,$$ { \
 		s/Name="([^|]*).*"/gene="\1"/; \
 		p; }' $*.gb) >$@
 
 # Merge MAKER and Prokka annotations using bedtools
 %.maker.prokka.gff: %.prokka.gff %.maker.gff
 	bedtools intersect -v -header -a $< -b $*.maker.gff \
-		|sed '/tRNA-???/{N;d;}' \
+		|gsed '/tRNA-???/{N;d;}' \
 		|gt gff3 -sort $*.maker.gff - >$@
 
 # Merge manual, MAKER and Prokka annotations using bedtools
 %.orig.gff: %.maker.prokka.gff %.manual.gff
 	bedtools intersect -v -header -a $< -b $*.manual.gff \
-		|sed '/tRNA-???/{N;d;}' \
+		|gsed '/tRNA-???/{N;d;}' \
 		|gt gff3 -sort $*.manual.gff - >$@
 
 # Remove contamination from the GFF file
 %.gff: %.orig.gff
-	sed -E '/^(33|36)[[:blank:]]/d' $< |uniq >$@
+	gsed -E '/^(33|36)[[:blank:]]/d' $< |uniq >$@
 
 # OrganellarGenomeDRAW
 
@@ -320,7 +320,7 @@ prokka/%.gff.gene: prokka/%.gff
 
 # Determine unique gene names
 %.gff.uniq.gene: %.gff.gene
-	sed '/orf/d;s/|.*//;s/[-_][0-9a-z]$$//' $< |sort -u >$@
+	gsed '/orf/d;s/|.*//;s/[-_][0-9a-z]$$//' $< |sort -u >$@
 
 # Extract DNA sequences of GFF gene features from a FASTA file
 %.gff.gene.fa: %.gff %.fa
@@ -337,7 +337,7 @@ prokka/%.gff.gene: prokka/%.gff
 # Translate protein sequences of GFF CDS features from a FASTA file
 %.aa.fa: %.fa
 	gt seqtranslate -reverse no -fastawidth 0 $< \
-	|sed -n '/ (1+)$$/{s/ (1+)$$//;p;n;p;n;n;n;n;}' >$@
+	|gsed -n '/ (1+)$$/{s/ (1+)$$//;p;n;p;n;n;n;n;}' >$@
 
 # Extract sequences of GFF intron features
 %.gff.intron.fa: %.gff %.fa
@@ -418,7 +418,7 @@ gbk/%.00.gbk: %.gbk
 # Remove contamination and add structured comments to the FASTA file
 %.fsa: %.fa
 	seqtk seq $< \
-		|sed -E -e '/^>(33|36)$$/{N;d;}' \
+		|gsed -E -e '/^>(33|36)$$/{N;d;}' \
 			-e 's/^>.*/& [organism=Picea sitchensis] [location=mitochondrion] [completeness=draft] [topology=linear] [gcode=1]/' \
 			>$@
 
