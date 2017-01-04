@@ -194,8 +194,16 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 		match($$0, "MI:i:([^\t]*)", x) { mi = x[1] } \
 		{ print $$2 "\t" $$3 "\t" $$5 "\t" as "\t" bx "\t" mi }' >$@
 
+# Count the number of reads per barcode.
+%.bam.bx.count.tsv: %.bam.bx.tsv
+	mlr --tsvlite filter '($$Flags & 2) != 0 && $$AS >= 40 && $$BX != "NA"' \
+		then count-distinct -f BX \
+		then rename count,Reads \
+		then sort -nr Reads -f BX \
+		$< >$@
+
 # Extract barcodes with at least 4 good aligned reads per barcode.
-%.bam.bx.atleast4.txt: %.bam.bx.tsv
+%.bam.bx.atleast4.txt: %.bam.bx.count.tsv
 	awk 'NR > 1 && $$2 >= 4 {print $$1}' $< >$@
 
 # Extract those reads from a set of barcodes from a FASTQ file.
