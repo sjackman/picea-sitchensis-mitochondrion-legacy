@@ -322,6 +322,10 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 %-scaftigs.fa: %-scaffolds.fa
 	seqtk seq $< | tr _ '~' | $(abyssbin201)/abyss-fatoagp -f $@ >$@.agp
 
+# Break scaffolds at gaps to produce scaftigs.
+%.scaftigs.fa: %.fa
+	seqtk seq $< | tr _ '~' | $(abyssbin201)/abyss-fatoagp -f $@ >$@.agp
+
 # Calculate assembly contiguity statistics with abyss-fac.
 %.stats.tsv: %.fa
 	$(abyssbin201)/abyss-fac -t500 -G$G $< >$@
