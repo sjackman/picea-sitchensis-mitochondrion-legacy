@@ -1,7 +1,25 @@
 ---
 title: Explore Chromium Barcode Frequency
 author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  bx_filename:
+    label: "Input TSV file of read alignments with columns Flags, Mapq, AS, BX"
+    value: "pglauca.psitchensis.longranger.align.bam.bx.tsv"
+    input: text
+  bx_count_filename:
+    label: "Output TSV file of read counts per barcode with columns BX and Reads"
+    value: "pglauca.psitchensis.longranger.align.bam.bx.count.tsv"
+    input: text
 ---
+
+```{r setup}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+bx_filename <- params$bx_filename
+bx_count_filename <- params$bx_count_filename
+```
 
 # Load packages
 ```{r load-packages}
@@ -13,9 +31,7 @@ library(ggplot2)
 
 # Read data
 ```{r read-data}
-bx_filename <- "pglauca.psitchensis.longranger.align.bam.bx.tsv"
-bx_count_filename <- "pglauca.psitchensis.longranger.align.bam.bx.count.tsv"
-data_all <- read_tsv(filename)
+data_all <- read_tsv(bx_filename)
 ```
 
 # Count reads per barcode

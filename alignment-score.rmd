@@ -1,8 +1,26 @@
 ---
 title: Plot alignment scores
 author: Shaun Jackman
-date: 2016-09-08
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of read alignments with AS column"
+    value: "pglauca.psitchensis.longranger.align.bam.bx.tsv"
+    input: select
+    choices: [
+        "organelles.psitchensis.longranger.bam.bx.tsv",
+        "organelles.psitchensis.proper.bam.as.tsv",
+        "pglauca.psitchensis.longranger.align.bam.bx.tsv",
+        "pglauca.psitchensis.proper.bam.as.tsv",
+        "psitchensismt.1.psitchensis.bx.bam.bx.tsv"]
 ---
+
+```{r setup}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv <- params$input_tsv
+```
 
 # Load packages
 ```{r load-packages}
@@ -14,10 +32,7 @@ library(readr)
 
 # Read data
 ```{r read-data}
-#data_all <- read_tsv("pglauca.psitchensis.proper.bam.as.tsv")
-#data_all <- read_tsv("organelles.psitchensis.proper.bam.as.tsv")
-data_all <- read_tsv("pglauca.psitchensis.longranger.align.bam.bx.tsv")
-#data_all <- read_tsv("organelles.psitchensis.longranger.bam.bx.tsv")
+data_all <- read_tsv(input_tsv)
 ```
 
 # Descriptive stats
@@ -40,7 +55,7 @@ ggplot(data_good) + aes(x = "Good", y = AS) + geom_boxplot() + ylim(0, NA)
 ```
 
 # Boxplot of good alignment scores
-```{r as-boxplot-good}
+```{r as-boxplot-good-barcode-na}
 ggplot(data_good) + aes(x = is.na(Barcode), y = AS) + geom_boxplot() + ylim(0, NA)
 ```
 
