@@ -204,7 +204,7 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 
 # Extract barcodes with at least 4 good aligned reads per barcode.
 %.bam.bx.atleast4.txt: %.bam.bx.count.tsv
-	awk 'NR > 1 && $$2 >= 4 {print $$1}' $< >$@
+	mlr --tsvlite --headerless-csv-output filter '$$Reads >= 4' then cut -f BX $< >$@
 
 # Extract those reads from a set of barcodes from a FASTQ file.
 %.bx.atleast4.fq.gz: pglauca.%.longranger.align.bam.bx.atleast4.txt %.bx.fq.gz
