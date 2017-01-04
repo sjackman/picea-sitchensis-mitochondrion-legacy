@@ -203,6 +203,11 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 	gunzip -c $*.bx.fq.gz | paste - - - - - - - - \
 		| grep -Ff $< | tr '\t' '\n' | $(gzip) >$@
 
+# Extract those reads from a set of barcodes from a FASTQ file.
+$(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
+	gunzip -c $*.bx.fq.gz | paste - - - - - - - - \
+		| grep -Ff $< | tr '\t' '\n' | $(gzip) >$@
+
 # Extract those reads from a set of barcodes from a BAM file.
 %.bam.bx.atleast4.bam: %.bam.bx.atleast4.txt %.bam
 	samtools view -h $*.bam | grep -Ff $< -e '@' | samtools view -b -o $@
