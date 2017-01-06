@@ -62,7 +62,8 @@ gene.types <- matrix(nrow = 2, data = c(
 	'trn', 'transfer RNAs')) %>%
 	t %>% data.frame %>%
 	set_colnames(c('Family.short', 'Family')) %>%
-	right_join(family_colour, by = "Family.short")
+	right_join(family_colour, by = "Family.short") %>%
+	mutate(Family_both = paste(Family.short, Family, sep = ": "))
 ```
 
 # Load data
@@ -305,9 +306,7 @@ ggplot(data_scaffolds) +
 data_genes <- data %>%
 	filter(Family.short != "orf") %>%
 	mutate(
-		Family = factor(Family.short,
-			levels = gene.types$Family.short,
-			labels = paste(gene.types$Family.short, gene.types$Family, sep = ": ")),
+		Family = factor(Family.short, levels = gene.types$Family.short, labels = gene.types$Family_both),
 		Gene = Gene %>% sub("ccm.*", "ccm*", .) %>% sub("ymf.*", "ymf*", .),
 		Size = pmax(Size, 200),
 		TextSize = pmax(Size, 2000) + 100) %>%
@@ -338,7 +337,7 @@ ggplot(data_genes) +
 	geom_text(size = 1.5, vjust = 2.5) +
 	geom_segment(aes(xend = (x + Size/2 + 1000)/1e3), x = 0, y = 2.5, yend = 2.5, size = 0.2) +
 	guides(fill = guide_legend(override.aes = list(colour = NULL))) +
-	scale_fill_manual("", values = gene.types$Colour) +
+	scale_fill_manual("", values = gene.types %$% setNames(Colour, Family_both)) +
 	scale_x_continuous("Gene size (kbp)", breaks = 0:5) +
 	ylab("") +
 	ylim("", "-", "+")
