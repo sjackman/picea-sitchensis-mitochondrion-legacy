@@ -16,6 +16,7 @@ library(magrittr)
 library(RColorBrewer)
 library(readr)
 library(stringr)
+library(tidyr)
 
 # Bioconductor
 library(genomeIntervals)
@@ -300,7 +301,7 @@ ggplot(data_scaffolds) +
 ```
 
 # Gene order and size
-```{r gene-order-and-size, fig.width = 7, fig.height = 9, dpi = 300}
+```{r gene-order-and-size, fig.width = 7, fig.height = 18, dpi = 300}
 data_genes <- data %>%
 	filter(Family.short != "orf") %>%
 	mutate(
@@ -310,6 +311,7 @@ data_genes <- data %>%
 		Gene = Gene %>% sub("ccm.*", "ccm*", .) %>% sub("ymf.*", "ymf*", .),
 		Size = pmax(Size, 200),
 		TextSize = pmax(Size, 2000) + 100) %>%
+	replace_na(list(Family = "oth: other genes")) %>%
 	group_by(Scaffold) %>%
 	mutate(x = cumsum(TextSize) - TextSize / 2) %>%
 	ungroup() %>%
