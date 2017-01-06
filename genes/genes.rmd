@@ -316,7 +316,8 @@ data_genes <- data %>%
 	ungroup() %>%
 	left_join(scaffold_sizes, by = "Scaffold")
 
-ggplot(data_genes) +
+plot_gene_order_and_size <- function(data)
+ggplot(data) +
 	theme_bw(base_size = 12) +
 	theme(axis.ticks.y = element_blank(),
 		axis.title.x = element_text(hjust = 0.04),
@@ -341,6 +342,14 @@ ggplot(data_genes) +
 	scale_x_continuous("Gene size (kbp)", breaks = 0:5) +
 	ylab("") +
 	ylim("", "-", "+")
+
+data_genes %>% plot_gene_order_and_size()
+```
+
+# Gene order and size (scaffolds >= 20 kbp)
+```{r gene-order-and-size-large, fig.width = 8.5, fig.height = 11, dpi = 300}
+scaffold_size_threshold <- 20000
+data_genes %>% filter(ScaffoldSize >= scaffold_size_threshold) %>% plot_gene_order_and_size()
 ```
 
 # Gene position
