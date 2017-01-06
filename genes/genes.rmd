@@ -301,8 +301,9 @@ ggplot(data_scaffolds) +
 	ylab('Size (kbp)')
 ```
 
-# Gene order and size
-```{r gene-order-and-size, fig.width = 8.5, fig.height = 14, dpi = 300}
+
+# Function to plot gene order and size
+```{r gene-order-and-size-function}
 data_genes <- data %>%
 	filter(Family.short != "orf") %>%
 	mutate(
@@ -344,7 +345,10 @@ ggplot(data) +
 	scale_x_continuous("Gene size (kbp)", breaks = 0:5) +
 	ylab("") +
 	ylim("", "-", "+")
+```
 
+# Gene order and size
+```{r gene-order-and-size, fig.width = 8.5, fig.height = 14, dpi = 300}
 data_genes %>% plot_gene_order_and_size()
 ```
 
@@ -352,6 +356,13 @@ data_genes %>% plot_gene_order_and_size()
 ```{r gene-order-and-size-large, fig.width = 8.5, fig.height = 11, dpi = 300}
 scaffold_size_threshold <- 20000
 data_genes %>% filter(ScaffoldSize >= scaffold_size_threshold) %>% plot_gene_order_and_size()
+```
+
+# Gene order and size of scaffolds with mitochondrial genes
+```{r gene-order-and-size-mt, fig.width = 10.5, fig.height = 13, dpi = 300}
+mt_scaffolds <- data_genes %>% filter(Family != "oth: other genes") %$% unique(Scaffold)
+data_genes %>% filter(Scaffold %in% mt_scaffolds) %>% plot_gene_order_and_size() +
+	theme(legend.position = c(1, 0.65))
 ```
 
 # Gene position
