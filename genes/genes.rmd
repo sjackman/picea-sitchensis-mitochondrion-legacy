@@ -311,10 +311,12 @@ data_genes <- data %>%
 		Size = pmax(Size, 200),
 		TextSize = pmax(Size, 2000) + 100) %>%
 	replace_na(list(Family = "oth: other genes")) %>%
+	left_join(scaffold_sizes, by = "Scaffold") %>%
+	arrange(desc(ScaffoldSize)) %>%
+	mutate(ScaffoldNameAndSize = factor(ScaffoldNameAndSize, unique(ScaffoldNameAndSize))) %>%
 	group_by(Scaffold) %>%
 	mutate(x = cumsum(TextSize) - TextSize / 2) %>%
-	ungroup() %>%
-	left_join(scaffold_sizes, by = "Scaffold")
+	ungroup()
 
 plot_gene_order_and_size <- function(data)
 ggplot(data) +
