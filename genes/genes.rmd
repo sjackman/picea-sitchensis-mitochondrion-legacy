@@ -22,6 +22,7 @@ library(genomeIntervals)
 ```
 
 ```{r knitr, include=FALSE}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
 opts_chunk$set(tidy = FALSE, fig.width = 10, fig.height = 5)
 ```
 
@@ -196,6 +197,20 @@ introns %>%
 	group_by(Type, Name) %>%
 	summarize(Count = n(), Size = sum(Intron_size)) %>%
 	kable
+```
+
+# Tabulate intons at least 300 bp
+```{r tabulate-introns-large}
+introns_large <- introns %>% filter(Intron_size >= 300)
+
+introns_large %>%
+	group_by(Type) %>%
+	summarize(Count = n(), Distinct = n_distinct(Name), Size = sum(Intron_size))
+
+introns_large %>%
+	group_by(Type, Name) %>%
+	summarize(Count = n(), Size = sum(Intron_size)) %>%
+  ungroup()
 ```
 
 # Histogram of gene size (≤ 1000 bp)
