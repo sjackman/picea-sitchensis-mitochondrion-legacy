@@ -49,6 +49,13 @@ install-deps:
 psitchensismt.1.fa: abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.nocp.2kbp.fa
 	ln -sf $< $@
 
+psitchensismt_2.fa: abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.nocp.2500bp.fa
+	ln -sf $< $@
+
+# Combine the plastome and chondrome into a single reference
+psitchensiscpmt_2.fa: KU215903.fa psitchensismt_2.fa
+	cat $^ >$@
+
 # Entrez Direct
 
 # Fetch data from NCBI.
@@ -377,6 +384,10 @@ l=1
 # Select scaffolds at least 2 kbp.
 %.2kbp.fa: %.fa
 	seqtk seq -L2000 $< >$@
+
+# Select scaffolds at least 2500 bp.
+%.2500bp.fa: %.fa
+	seqtk seq -L2500 $< >$@
 
 # Select scaffolds at least 5 kbp.
 %.5kbp.fa: %.fa
