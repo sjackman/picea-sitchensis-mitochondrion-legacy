@@ -441,6 +441,16 @@ l=1
 %.nocp.fa: %.fa %.fa.nocp
 	seqtk subseq $< $<.nocp >$@
 
+# Miniasm
+
+# Align sequences using minimap
+%.fa.paf: %.fa
+	minimap -S $< $< >$@
+
+# Assemble sequences using miniasm
+%.miniasm.gfa: %.fa.paf %.fa
+	miniasm -p sg -12 -f $*.fa $< >$@
+
 # Spearmint
 
 # Optimize the assembly parameters using Spearmint.
