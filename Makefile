@@ -157,6 +157,42 @@ $(ref)_$(name)_longranger_wgs/outs/phased_possorted_bam.bam: fastq_path/read-RA_
 $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_possorted_bam.bam
 	ln -sf $< $@
 
+# Convert bedpe to TSV.
+%.bedpe.tsv: %_longranger_wgs/outs/large_sv_calls.bedpe %_longranger_wgs/outs/large_sv_candidates.bedpe
+	(printf "chrom1\tstart1\tstop1\tchrom2\tstart2\tstop2\tname\tqual\tstrand1\tstrand2\tfilters\tinfo\n"; \
+		sed '/^#/d' $^) >$@
+
+# Convert bedpe.tsv to GraphViz.
+%.bedpe.gv: %.bedpe.tsv $(name)cpmt_2.fa.fai
+	( echo "graph "$*" {"; \
+		mlr --inidx --ifs tab put -q 'print $$1. " [l=" . $$2 . "]" . " [label=\"" . $$1 . "\\n" . $$2 . " bp\"]"' <$(name)cpmt_2.fa.fai; \
+		mlr --tsvlite stats1 -a max -g chrom1,chrom2 -f qual \
+			then put -q 'print $$chrom1 . " -- ". $$chrom2 . " [weight=" . $$qual_max . "]" . " [label=" . $$qual_max . "]"' $<; \
+		echo "}"; \
+	) >$@
+
+# GraphViz
+
+# Extract the largest connected component from a graph using ccomps.
+%.comp1.gv: %.gv
+	ccomps -zX'#0' -o $@ $< || test -r $@
+
+# Filter scaffolds by length using gvpr.
+%.l5k.gv: %.gv
+	gvpr -i 'N[l >= 5000]' -o $@ $<
+
+# Filter edges by number of barcodes using gvpr.
+%.m5.gv: %.gv
+	gvpr 'E[label >= 5]' -o $@ $<
+
+# Render a graph to PNG using neato.
+%.gv.neato.png: %.gv
+	neato -Tpng -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
+
+# Render a graph to SVG using neato.
+%.gv.neato.svg: %.gv
+	neato -Tsvg -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
+
 # samtools
 
 # Index a FASTA file.
