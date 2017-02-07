@@ -32,7 +32,9 @@ library(readr)
 
 # Read data
 ```{r read-data}
-data_all <- read_tsv(input_tsv)
+data_orig <- read_tsv(input_tsv)
+data_all <- data_orig %>% transform(Proper = bitwAnd(Flags, 2) != 0)
+data_proper <- data_all %>% filter(Proper)
 ```
 
 # Descriptive stats
@@ -49,20 +51,31 @@ nrow(data_good) / nrow(data_all)
 ggplot(data_all) + aes(x = "All", y = AS) + geom_boxplot(coef = 9) + ylim(0, NA)
 ```
 
+# Boxplot of proper alignment scores
+```{r as-boxplot-proper}
+ggplot(data_all) + aes(x = Proper, y = AS) + geom_boxplot() + ylim(0, NA)
+```
+
 # Boxplot of good alignment scores
 ```{r as-boxplot-good}
 ggplot(data_good) + aes(x = "Good", y = AS) + geom_boxplot() + ylim(0, NA)
 ```
 
-# Boxplot of good alignment scores
-```{r as-boxplot-good-barcode-na}
-ggplot(data_good) + aes(x = is.na(Barcode), y = AS) + geom_boxplot() + ylim(0, NA)
+# Boxplot of good and proper alignment scores
+```{r as-boxplot-good-proper}
+ggplot(data_good) + aes(x = Proper, y = AS) + geom_boxplot() + ylim(0, NA)
 ```
 
 # Histogram of all alignment scores
 ```{r as-histogram-all}
 ggplot(data_all) + aes(x = AS) + geom_histogram(binwidth = 1)
 ggplot(data_all) + aes(x = AS) + geom_histogram(binwidth = 20, center = 10)
+```
+
+# Histogram of proper alignment scores
+```{r as-histogram-proper}
+ggplot(data_proper) + aes(x = AS) + geom_histogram(binwidth = 1)
+ggplot(data_proper) + aes(x = AS) + geom_histogram(binwidth = 20, center = 10)
 ```
 
 # Histogram of good alignment scores
