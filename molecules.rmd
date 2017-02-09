@@ -1,0 +1,183 @@
+---
+title: Explore Chromium molecule size
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  molecules_filename:
+    label: "Input TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
+    value: "psitchensiscpmt_2.psitchensis.longranger.wgs.bam.bx.molecule.tsv"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(magrittr)
+library(purrr)
+library(readr)
+library(ggplot2)
+library(scales)
+library(tidyr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+molecules_filename <- params$molecules_filename
+```
+
+# Read data
+```{r read-data}
+molecules_orig <- read_tsv(molecules_filename)
+```
+
+# Filter
+```{r filter}
+count_threshold <- 4
+molecules <- molecules_orig %>% filter(Reads >= count_threshold)
+```
+
+# Box plots
+```{r box-plot}
+fivenum(molecules$Size)
+max(molecules$Size)
+molecules %>% filter(Size >= 100) %$% boxplot.stats(Size)$stats
+molecules %>% filter(Size >= 200) %$% boxplot.stats(Size)$stats
+molecules %>% filter(Size >= 500) %$% boxplot.stats(Size)$stats
+molecules %>% filter(Size >= 1000) %$% boxplot.stats(Size)$stats
+molecules %>% filter(AS_median >= -10) %$% boxplot.stats(Size)$stats
+molecules %>% filter(Mapq_median >= 60) %$% boxplot.stats(Size)$stats
+molecules %>% filter(Reads >= 10) %$% boxplot.stats(Size)$stats
+molecules %>% filter(1e3 <= Size & Size < 50e3 & Mapq_median >= 60 & Reads >= 10 & AS_median >= -10) %>%
+	ggplot() + aes(y = Size, x = "") + geom_boxplot() +
+	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+molecules %>% filter(1e3 <= Size & Size < 50e3 & Mapq_median >= 60 & Reads >= 10 & AS_median >= -10) %>%
+	ggplot() + aes(y = Size, x = "", weight = Reads) + geom_boxplot() +
+	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+molecules %>% filter(1e3 <= Size & Size < 50e3) %>%
+	ggplot() + aes(y = Size, x = "", weight = Reads) + geom_boxplot() +
+	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+```
+
+# Histogram of molecule size
+```{r histogram-size}
+ggplot(molecules) + aes(x = Size) +
+	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_y_continuous(name = "Number of molecules", labels = comma)
+
+ggplot(molecules) + aes(x = Size, weight = Reads) +
+	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_y_continuous(name = "Number of reads", labels = comma)
+
+ggplot(molecules) + aes(x = Size, weight = Size) +
+	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_y_continuous(name = "Total DNA mass (Mbp)", labels = unit_format(unit = "Mbp", scale = 1e-6))
+```
+
+# Histogram of reads per molecule
+```{r histogram-reads}
+ggplot(molecules) + aes(x = Reads) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_x_continuous(limits = c(0, 50)) +
+	scale_y_continuous(name = "Number of molecules", labels = comma)
+
+ggplot(molecules) + aes(x = Reads, weight = Reads) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_x_continuous(limits = c(0, 50)) +
+	scale_y_continuous(name = "Number of reads", labels = comma)
+```
+
+# Histogram of alignment score (AS)
+```{r histogram-as}
+ggplot(molecules) + aes(x = AS_median) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_x_continuous(limits = c(-150, 0)) +
+	scale_y_continuous(name = "Number of molecules", labels = comma)
+
+ggplot(molecules) + aes(x = AS_median, weight = Reads) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_x_continuous(limits = c(-150, 0)) +
+	scale_y_continuous(name = "Number of reads", labels = comma)
+```
+
+# Histogram of mapping quality (MAPQ)
+```{r histogram-mapq}
+ggplot(molecules) + aes(x = Mapq_median) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_y_continuous(name = "Number of molecules", labels = comma)
+
+ggplot(molecules) + aes(x = Mapq_median, weight = Reads) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_y_continuous(name = "Number of reads", labels = comma)
+```
+
+# Histogram of molecules per barcode
+```{r histogram-molecules-per-barcode}
+molecules_per_barcode <- molecules %>% count(BX) %>% rename(Molecules = n)
+
+ggplot(molecules_per_barcode) + aes(x = Molecules) +
+	geom_histogram(binwidth = 1, boundary = 0) +
+	scale_x_continuous(name = "Number of molecules per barcode") +
+	scale_y_continuous(name = "Number of barcodes", labels = comma)
+```
+
+# Heatmap of molecule size and number of reads per molecule
+```{r heatmap-reads-size}
+ggplot(molecules) + aes(x = Size, y = Reads) + geom_hex() +
+	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
+	scale_y_log10(name = "Number of reads per molecule", labels = comma) +
+	scale_fill_continuous("Number of molecules", trans = log10_trans(), labels = comma)
+
+ggplot(molecules) + aes(x = Size, y = Reads, weight = Reads) + geom_hex() +
+	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
+	scale_y_log10(name = "Number of reads per molecule", labels = comma) +
+	scale_fill_continuous("Number of reads", trans = log10_trans(), labels = comma)
+```
+
+# Scaffold 4
+
+# Scatter plot of start and end coordinates
+```{r scatter-start-end}
+scaffold4_all <- molecules %>% filter(Rname == "4")
+scaffold4_good <- molecules %>% filter(Rname == "4" & AS_median > -4 & Size >= 500)
+scaffold4 <- scaffold4_all
+scaffold4 %>% filter(Start < 108910 & End > 109284)
+
+ggplot(scaffold4) + aes(x = Start, y = End, alpha = Reads) + geom_point()
+ggplot(scaffold4) + aes(x = Start, y = Size) + geom_point()
+```
+
+# Histogram of start coordinates
+```{r histogram-start}
+ggplot(scaffold4 %>% filter(Size >= 1000)) + aes(x = Start) + geom_histogram(binwidth = 1) + xlim(108500, 109500)
+scaffold4_starts <- scaffold4 %>% filter(Size >= 1000) %>% count(Start) %>% arrange(desc(n))
+head(scaffold4_starts)
+```
+
+# Depth of molecule coverage
+```{r depth-of-coverage}
+scaffold4_pos <- unique(c(scaffold4$Start, scaffold4$End))
+depth <- scaffold4_pos %>% map(~ filter(scaffold4, Start <= .x & End > .x) %>% nrow()) %>% unlist
+scaffold4_depth <- data_frame(Pos = scaffold4_pos, Depth = depth)
+ggplot(scaffold4_depth) + aes(x = Depth) + geom_histogram(binwidth = 1)
+ggplot(scaffold4_depth) + aes(x = Pos, y = Depth, colour = Depth < 100) + geom_point()
+scaffold4_depth %>% filter(Depth < 100 & Pos > 2000 & Pos < 117000) %>% summarize(min(Pos), max(Pos))
+```
+
+# Median molecule size spanning each position
+```{r median-size-all}
+scaffold4_pos <- unique(c(scaffold4$Start, scaffold4$End))
+median_size <- scaffold4_pos %>% map(~ filter(scaffold4, Start <= .x & End > .x) %$% median(Size)) %>% unlist
+scaffold4_median_size <- data_frame(Pos = scaffold4_pos, Median_size = median_size) %>% replace_na(list(Median_size = 0))
+ggplot(scaffold4_median_size) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
+ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
+scaffold4_median_size %>% filter(Median_size < 10000 & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+```
+
+# Median molecule size spanning each position (filtered by Size and AS)
+```{r median-size-good}
+scaffold4_good_pos <- unique(c(scaffold4_good$Start, scaffold4_good$End))
+median_size <- scaffold4_good_pos %>% map(~ filter(scaffold4_good, Start <= .x & End > .x) %$% median(Size)) %>% unlist
+scaffold4_median_size <- data_frame(Pos = scaffold4_good_pos, Median_size = median_size) %>% replace_na(list(Median_size = 0))
+ggplot(scaffold4_median_size) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
+ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
+scaffold4_median_size %>% filter(Median_size < 10000 & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+```
