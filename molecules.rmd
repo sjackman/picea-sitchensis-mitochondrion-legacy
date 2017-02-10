@@ -13,6 +13,7 @@ params:
 
 ```{r setup}
 library(dplyr)
+library(knitr)
 library(magrittr)
 library(purrr)
 library(readr)
@@ -35,41 +36,27 @@ count_threshold <- 4
 molecules <- molecules_orig %>% filter(Reads >= count_threshold)
 ```
 
-# Box plots
-```{r box-plot}
-fivenum(molecules$Size)
-max(molecules$Size)
-molecules %>% filter(Size >= 100) %$% boxplot.stats(Size)$stats
-molecules %>% filter(Size >= 200) %$% boxplot.stats(Size)$stats
-molecules %>% filter(Size >= 500) %$% boxplot.stats(Size)$stats
-molecules %>% filter(Size >= 1000) %$% boxplot.stats(Size)$stats
-molecules %>% filter(AS_median >= -10) %$% boxplot.stats(Size)$stats
-molecules %>% filter(Mapq_median >= 60) %$% boxplot.stats(Size)$stats
-molecules %>% filter(Reads >= 10) %$% boxplot.stats(Size)$stats
-molecules %>% filter(1e3 <= Size & Size < 50e3 & Mapq_median >= 60 & Reads >= 10 & AS_median >= -10) %>%
-	ggplot() + aes(y = Size, x = "") + geom_boxplot() +
-	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
-molecules %>% filter(1e3 <= Size & Size < 50e3 & Mapq_median >= 60 & Reads >= 10 & AS_median >= -10) %>%
-	ggplot() + aes(y = Size, x = "", weight = Reads) + geom_boxplot() +
-	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
-molecules %>% filter(1e3 <= Size & Size < 50e3) %>%
-	ggplot() + aes(y = Size, x = "", weight = Reads) + geom_boxplot() +
-	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
-```
-
 # Histogram of molecule size
 ```{r histogram-size}
 ggplot(molecules) + aes(x = Size) +
 	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
 	scale_y_continuous(name = "Number of molecules", labels = comma)
 
 ggplot(molecules) + aes(x = Size, weight = Reads) +
 	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
 	scale_y_continuous(name = "Number of reads", labels = comma)
 
 ggplot(molecules) + aes(x = Size, weight = Size) +
 	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
 	scale_y_continuous(name = "Total DNA mass (Mbp)", labels = unit_format(unit = "Mbp", scale = 1e-6))
+
+ggplot(molecules) + aes(x = Size, weight = Reads) +
+	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_x_continuous(limits = c(1500, 50000), name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
+	scale_y_continuous(name = "Number of reads", labels = comma)
 ```
 
 # Histogram of reads per molecule
@@ -116,6 +103,16 @@ molecules_per_barcode <- molecules %>% count(BX) %>% rename(Molecules = n)
 ggplot(molecules_per_barcode) + aes(x = Molecules) +
 	geom_histogram(binwidth = 1, boundary = 0) +
 	scale_x_continuous(name = "Number of molecules per barcode") +
+	scale_y_continuous(name = "Number of barcodes", labels = comma)
+```
+
+# Histogram of DNA per barcode
+```{r histogram-molecules-per-barcode}
+dna_per_barcode <- molecules %>% group_by(BX) %>% summarize(DNA = sum(Size))
+
+ggplot(dna_per_barcode) + aes(x = DNA) +
+	geom_histogram(binwidth = 500, boundary = 0) +
+	scale_x_continuous(name = "DNA per barcode") +
 	scale_y_continuous(name = "Number of barcodes", labels = comma)
 ```
 
