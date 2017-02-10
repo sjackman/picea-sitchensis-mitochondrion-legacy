@@ -29,17 +29,28 @@ best_hits <- read_tsv("abyss/2.0.1/k75/kc4/arcs/organelles.psitchensis-scaffolds
   arrange(Name)
 depth <- read_tsv("abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.psitchensis.bx.atleast4.as100.bam.depth.stats.tsv") %>%
   select(Name = Seq, Depth = Depth_p50)
+genes_orig <- read_tsv("genes/genes.tsv")
 ```
 
 # Munge data
 ```{r munge}
+depth_threshold_min <- 20
+depth_threshold_max <- 80
 depth_threshold <- 100
+gc_threshold_min <- 0.38
+gc_threshold_max <- 0.53
 length_threshold <- 2000
+
+genes <- genes_orig %>%
+	filter(!is.na(Family)) %>%
+	group_by(Name = Scaffold) %>%
+	summarise(Genes = n())
 
 composition_depth <- composition %>%
   left_join(depth, by = "Name") %>%
   left_join(best_hits, by = "Name") %>%
-  replace_na(list(Organelle = "Unknown"))
+  left_join(genes, by = "Name") %>%
+  replace_na(list(Organelle = "Unknown", Genes = 0))
 
 composition_depth_large <- composition_depth %>%
   filter(NumACGT >= length_threshold)
@@ -48,25 +59,40 @@ composition_depth_large <- composition_depth %>%
 # Plot length vs depth
 ```{r plot-length-depth-point}
 plot_length_depth_point <- ggplot(composition_depth %>% filter(NumACGT > 500)) +
-  aes(x = Depth, y = NumACGT, colour = Organelle, size = NumACGT) +
+  aes(x = Depth, y = NumACGT / 1000, colour = Organelle, size = NumACGT,
+  	alpha = ifelse(Genes > 0, TRUE, FALSE)) +
   scale_colour_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
-  geom_point(alpha = 0.2) +
-  geom_hline(yintercept = length_threshold, colour = "pink")
+  scale_alpha_discrete(guide = FALSE, range = c(0.3, 0.8)) +
+  scale_size_continuous(guide = FALSE) +
+  geom_point()
+  #geom_hline(yintercept = length_threshold, colour = "pink")
 plot_length_depth_point +
   scale_x_log10(breaks = c(10, 20, 50, 100, 200, 500, 1000)) +
-  scale_y_log10(breaks = c(1e3, 1e4, 1e5, 1e6))
+  scale_y_log10(breaks = c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000)) +
+  ylab("Scaffold size (kbp)") +
+  theme_grey(14) +
+  theme(legend.position = c(.8, .8))
 plot_length_depth_point
-plot_length_depth_point + coord_cartesian(c(0, depth_threshold), c(0, 20000))
+plot_length_depth_point + coord_cartesian(c(0, depth_threshold), c(0, 10000))
 ```
 
 # Plot GC content vs depth
 ```{r plot-gc-depth-point}
 plot_gc_content_depth <- ggplot(composition_depth_large) +
-  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT) +
+  aes(x = Depth, y = GC, colour = Organelle, size = NumACGT,
+  	alpha = ifelse(Genes > 0, 0.5, 0.1)) +
   scale_colour_manual(values = c(Mitochondrion = "blue", Plastid = "green", Unknown = "black")) +
-  geom_point(alpha = 0.5)
+  geom_point()
 plot_gc_content_depth
 plot_gc_content_depth + coord_cartesian(c(0, depth_threshold))
+plot_gc_content_depth +
+	coord_cartesian(
+		c(depth_threshold_min, depth_threshold_max),
+		c(gc_threshold_min, gc_threshold_max))
+plot_gc_content_depth +
+	coord_cartesian(
+		c(30, 50),
+		c(0.43, 0.46))
 ```
 
 # Tile of GC content vs depth
@@ -105,4 +131,19 @@ c(Inf, 5000, 2000, 1000, 500) %>% map(function(x)
 composition_depth_large %>%
   filter(Organelle == "Plastid") %>%
   select(Name, Length, NumACGT, GC, Depth)
+```
+
+# Table of features of scaffolds with genes
+```{r table-scaffold-features}
+composition_depth_large %>%
+  filter(Genes > 0) %>%
+  select(Name, Organelle, Genes, NumACGT, GC, Depth)
+
+composition_depth_large %>%
+  filter(Genes > 0) %>%
+  select(Length, NumACGT, GC, Depth) %>%
+  summarise_each(funs(min, median, max)) %>%
+  gather(Variable, Value) %>%
+  separate(Variable, c("Variable", "Statistic"), sep="_") %>%
+  spread(Variable, Value)
 ```
