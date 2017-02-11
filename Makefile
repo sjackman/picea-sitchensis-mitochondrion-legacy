@@ -230,12 +230,12 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 # Extract the alignment score, barcode and molecule identifier.
 %.bam.bx.tsv: %.bam
 	samtools view -F4 $< | gawk -F'\t' ' \
-		BEGIN { print "Flags\tRname\tMapq\tAS\tBX\tMI" } \
+		BEGIN { print "Flags\tRname\tPos\tMapq\tAS\tBX\tMI" } \
 		{ as = bx = mi = "NA" } \
 		match($$0, "AS:.:([^\t]*)", x) { as = x[1] } \
 		match($$0, "BX:Z:([^\t]*)", x) { bx = x[1] } \
 		match($$0, "MI:i:([^\t]*)", x) { mi = x[1] } \
-		{ print $$2 "\t" $$3 "\t" $$5 "\t" as "\t" bx "\t" mi }' >$@
+		{ print $$2 "\t" $$3 "\t" $$4 "\t" $$5 "\t" as "\t" bx "\t" mi }' >$@
 
 # Count the number of reads per barcode.
 %.bam.bx.count.tsv: %.bam.bx.tsv
@@ -296,6 +296,35 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 # Extract the query and target name from a BAM file.
 %.bam.names.tsv: %.bam
 	(printf "QName\tTName\n"; samtools view $< | cut -f1,3) >$@
+
+# Create a TSV file of molecule extents.
+%.bx.molecule.tsv: %.bx.tsv
+	mlr --tsvlite \
+		stats1 -g BX,MI,Rname -a count,min,p50,max -f Pos,Mapq,AS \
+		then rename Pos_min,Start,Pos_max,End,Mapq_p50,Mapq_median,AS_p50,AS_median,Pos_count,Reads \
+		then put '$$Size = $$End - $$Start' \
+		then cut -o -f Rname,Start,End,Size,BX,MI,Reads,Mapq_median,AS_median \
+		then filter '$$MI != "NA" && $$Reads >= 4' \
+		$< >$@
+
+# Create a BED file of molecule extents.
+%.bx.molecule.bed: %.bx.molecule.tsv
+	mlr --tsvlite --headerless-csv-output \
+		put '$$Start = $$Start - 1; $$End = $$End - 1' \
+		then put '$$Name = "Reads=" . $$Reads . ",Size=" . $$Size . ",Mapq=" . $$Mapq_median . ",AS=" . $$AS_median . ",BX=" . $$BX . ",MI=" . $$MI' \
+		then cut -o -f Rname,Start,End,Name,Reads $< >$@
+
+# igvtools
+
+# Index a BED file.
+%.bed.idx: %.bed
+	igvtools index $<
+
+# bedtools
+
+# Convert BED to BAM.
+%.bed.bam: %.bed psitchensiscpmt_2.fa.fai
+	bedtools bedtobam -i $< -g psitchensiscpmt_2.fa.fai >$@
 
 # htsbox
 
