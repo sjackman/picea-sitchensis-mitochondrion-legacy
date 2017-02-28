@@ -5,7 +5,7 @@ output:
   html_document:
     keep_md: true
 params:
-  molecules_filename:
+  input_tsv:
     label: "Input TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
     value: "psitchensiscpmt_2.psitchensis.longranger.wgs.bam.bx.molecule.tsv"
     input: text
@@ -22,7 +22,7 @@ library(scales)
 library(tidyr)
 
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
-molecules_filename <- params$molecules_filename
+molecules_filename <- params$input_tsv
 ```
 
 # Read data
@@ -107,7 +107,7 @@ ggplot(molecules_per_barcode) + aes(x = Molecules) +
 ```
 
 # Histogram of DNA per barcode
-```{r histogram-molecules-per-barcode}
+```{r histogram-dna-per-barcode}
 dna_per_barcode <- molecules %>% group_by(BX) %>% summarize(DNA = sum(Size))
 
 ggplot(dna_per_barcode) + aes(x = DNA) +
@@ -133,8 +133,11 @@ ggplot(molecules) + aes(x = Size, y = Reads, weight = Reads) + geom_hex() +
 
 # Scatter plot of start and end coordinates
 ```{r scatter-start-end}
+as_median_threshold <- -4
+size_threshold <- 500
+
 scaffold4_all <- molecules %>% filter(Rname == "4")
-scaffold4_good <- molecules %>% filter(Rname == "4" & AS_median > -4 & Size >= 500)
+scaffold4_good <- molecules %>% filter(Rname == "4" & AS_median > as_median_threshold & Size >= size_threshold)
 scaffold4 <- scaffold4_all
 scaffold4 %>% filter(Start < 108910 & End > 109284)
 
@@ -144,9 +147,16 @@ ggplot(scaffold4) + aes(x = Start, y = Size) + geom_point()
 
 # Histogram of start coordinates
 ```{r histogram-start}
-ggplot(scaffold4 %>% filter(Size >= 1000)) + aes(x = Start) + geom_histogram(binwidth = 1) + xlim(108500, 109500)
-scaffold4_starts <- scaffold4 %>% filter(Size >= 1000) %>% count(Start) %>% arrange(desc(n))
-head(scaffold4_starts)
+starts_size_threshold <- 2000
+ggplot(scaffold4 %>% filter(Size >= starts_size_threshold)) + aes(x = Start) + geom_histogram(binwidth = 1) + xlim(108500, 109500)
+scaffold4_starts <- scaffold4 %>%
+	filter(Size >= starts_size_threshold) %>%
+	group_by(Rname, Start) %>%
+	summarize(Starts = n(), AS_median = median(AS_median), Reads = sum(Reads)) %>%
+	ungroup() %>%
+	rename(Pos = Start) %>%
+	arrange(desc(Starts)) %>% head
+scaffold4_starts %>% arrange(desc(Starts)) %>% head
 ```
 
 # Depth of molecule coverage
@@ -171,10 +181,47 @@ scaffold4_median_size %>% filter(Median_size < 10000 & Pos > 10000 & Pos < 11000
 
 # Median molecule size spanning each position (filtered by Size and AS)
 ```{r median-size-good}
+median_size_threshold <- 10000
 scaffold4_good_pos <- unique(c(scaffold4_good$Start, scaffold4_good$End))
 median_size <- scaffold4_good_pos %>% map(~ filter(scaffold4_good, Start <= .x & End > .x) %$% median(Size)) %>% unlist
 scaffold4_median_size <- data_frame(Pos = scaffold4_good_pos, Median_size = median_size) %>% replace_na(list(Median_size = 0))
 ggplot(scaffold4_median_size) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
-ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
-scaffold4_median_size %>% filter(Median_size < 10000 & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < median_size_threshold) + geom_point()
+scaffold4_median_size %>% filter(Median_size < median_size_threshold & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+```
+
+# Depth of molecule coverage (filtered by Size and AS)
+```{r depth-of-coverage-good}
+depth_good_threshold <- 50
+depth_good <- scaffold4_good_pos %>% map(~ filter(scaffold4_good, Start <= .x & End > .x) %>% nrow()) %>% unlist
+scaffold4_depth_good <- data_frame(Pos = scaffold4_good_pos, Depth = depth_good)
+ggplot(scaffold4_depth_good) + aes(x = Depth) + geom_histogram(binwidth = 1)
+ggplot(scaffold4_depth_good) + aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold) + geom_point()
+```
+
+# Identify misassemblies
+```{r misassemblies}
+scaffold4_features <- scaffold4_starts %>%
+	full_join(scaffold4_depth_good, by = "Pos") %>%
+	full_join(scaffold4_median_size, by = "Pos") %>%
+	select(Rname, Pos, everything()) %>%
+	arrange(Pos) %>%
+	fill(Depth, Median_size)
+
+starts_threshold <- 3
+scaffold4_misassemblies <-  scaffold4_features %>%
+	filter(Starts > starts_threshold & Depth < depth_good_threshold)
+scaffold4_misassemblies
+
+ggplot(scaffold4_features) +
+	aes(x = Pos) +
+	geom_point(aes(y = Median_size / 1000, colour = Median_size < 10000)) +
+	geom_point(aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold)) +
+	geom_point(aes(y = Starts)) +
+	geom_vline(aes(xintercept = Pos), scaffold4_misassemblies)
+```
+
+# Store misassemblies in a TSV file
+```{r misassemblies_tsv}
+write_tsv(scaffold4_misassemblies, "misassemblies.tsv")
 ```
