@@ -155,15 +155,27 @@ scaffold4_starts <- scaffold4 %>%
 	summarize(Starts = n(), AS_median = median(AS_median), Reads = sum(Reads)) %>%
 	ungroup() %>%
 	rename(Pos = Start) %>%
-	arrange(desc(Starts)) %>% head
+	arrange(Rname, Pos)
 scaffold4_starts %>% arrange(desc(Starts)) %>% head
+```
+
+# Calculate statistics of molecules spanning each position
+```{r molecultes-statistics}
+scaffold4_pos <- rbind(
+		transmute(scaffold4, Rname, Pos = Start),
+		transmute(scaffold4, Rname, Pos = End)) %>%
+	distinct()
+scaffold4_depth <- scaffold4_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
+	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(scaffold4, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
+	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
+	replace_na(list(Median_size = 0)) %>%
+	unnest(Rname, Pos) %>%
+	select(Rname, Pos, Depth, Median_size, everything()) %>%
+	arrange(Rname, Pos)
 ```
 
 # Depth of molecule coverage
 ```{r depth-of-coverage}
-scaffold4_pos <- unique(c(scaffold4$Start, scaffold4$End))
-depth <- scaffold4_pos %>% map(~ filter(scaffold4, Start <= .x & End > .x) %>% nrow()) %>% unlist
-scaffold4_depth <- data_frame(Pos = scaffold4_pos, Depth = depth)
 ggplot(scaffold4_depth) + aes(x = Depth) + geom_histogram(binwidth = 1)
 ggplot(scaffold4_depth) + aes(x = Pos, y = Depth, colour = Depth < 100) + geom_point()
 scaffold4_depth %>% filter(Depth < 100 & Pos > 2000 & Pos < 117000) %>% summarize(min(Pos), max(Pos))
@@ -171,46 +183,51 @@ scaffold4_depth %>% filter(Depth < 100 & Pos > 2000 & Pos < 117000) %>% summariz
 
 # Median molecule size spanning each position
 ```{r median-size-all}
-scaffold4_pos <- unique(c(scaffold4$Start, scaffold4$End))
-median_size <- scaffold4_pos %>% map(~ filter(scaffold4, Start <= .x & End > .x) %$% median(Size)) %>% unlist
-scaffold4_median_size <- data_frame(Pos = scaffold4_pos, Median_size = median_size) %>% replace_na(list(Median_size = 0))
-ggplot(scaffold4_median_size) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
-ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
-scaffold4_median_size %>% filter(Median_size < 10000 & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+ggplot(scaffold4_depth) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
+ggplot(scaffold4_depth) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
 ```
 
-# Median molecule size spanning each position (filtered by Size and AS)
-```{r median-size-good}
-median_size_threshold <- 10000
-scaffold4_good_pos <- unique(c(scaffold4_good$Start, scaffold4_good$End))
-median_size <- scaffold4_good_pos %>% map(~ filter(scaffold4_good, Start <= .x & End > .x) %$% median(Size)) %>% unlist
-scaffold4_median_size <- data_frame(Pos = scaffold4_good_pos, Median_size = median_size) %>% replace_na(list(Median_size = 0))
-ggplot(scaffold4_median_size) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
-ggplot(scaffold4_median_size) + aes(x = Pos, y = Median_size, colour = Median_size < median_size_threshold) + geom_point()
-scaffold4_median_size %>% filter(Median_size < median_size_threshold & Pos > 10000 & Pos < 110000) %>% summarize(min(Pos), max(Pos))
+# Calculate statistics of molecules spanning each position (filtered by Size and AS)
+```{r molecultes-statistics-good}
+scaffold4_good_pos <- rbind(
+		transmute(scaffold4_good, Rname, Pos = Start),
+		transmute(scaffold4_good, Rname, Pos = End)) %>%
+	distinct()
+scaffold4_depth_good <- scaffold4_good_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
+	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(scaffold4_good, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
+	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
+	replace_na(list(Median_size = 0)) %>%
+	unnest(Rname, Pos) %>%
+	select(Rname, Pos, Depth, Median_size, everything()) %>%
+	arrange(Rname, Pos)
 ```
 
 # Depth of molecule coverage (filtered by Size and AS)
 ```{r depth-of-coverage-good}
 depth_good_threshold <- 50
-depth_good <- scaffold4_good_pos %>% map(~ filter(scaffold4_good, Start <= .x & End > .x) %>% nrow()) %>% unlist
-scaffold4_depth_good <- data_frame(Pos = scaffold4_good_pos, Depth = depth_good)
 ggplot(scaffold4_depth_good) + aes(x = Depth) + geom_histogram(binwidth = 1)
 ggplot(scaffold4_depth_good) + aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold) + geom_point()
+```
+
+# Median molecule size spanning each position (filtered by Size and AS)
+```{r median-size-good}
+median_size_threshold <- 10000
+ggplot(scaffold4_depth_good) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
+ggplot(scaffold4_depth_good) + aes(x = Pos, y = Median_size, colour = Median_size < median_size_threshold) + geom_point()
 ```
 
 # Identify misassemblies
 ```{r misassemblies}
 scaffold4_features <- scaffold4_starts %>%
-	full_join(scaffold4_depth_good, by = "Pos") %>%
-	full_join(scaffold4_median_size, by = "Pos") %>%
+	full_join(scaffold4_depth_good, by = c("Rname", "Pos")) %>%
 	select(Rname, Pos, everything()) %>%
-	arrange(Pos) %>%
+	arrange(Rname, Pos) %>%
 	fill(Depth, Median_size)
 
 starts_threshold <- 3
 scaffold4_misassemblies <-  scaffold4_features %>%
-	filter(Starts > starts_threshold & Depth < depth_good_threshold)
+	filter(Starts > starts_threshold & Depth < depth_good_threshold) %>%
+	select(-Sizes)
 scaffold4_misassemblies
 
 ggplot(scaffold4_features) +
