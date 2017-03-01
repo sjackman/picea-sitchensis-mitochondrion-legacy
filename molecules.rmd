@@ -216,8 +216,8 @@ ggplot(scaffold4_depth_good) + aes(x = Median_size) + geom_histogram(binwidth = 
 ggplot(scaffold4_depth_good) + aes(x = Pos, y = Median_size, colour = Median_size < median_size_threshold) + geom_point()
 ```
 
-# Identify misassemblies
-```{r misassemblies}
+# Identify misassemblies in scaffold 4
+```{r misassemblies-scaffold4}
 scaffold4_features <- scaffold4_starts %>%
 	full_join(scaffold4_depth_good, by = c("Rname", "Pos")) %>%
 	select(Rname, Pos, everything()) %>%
@@ -238,7 +238,45 @@ ggplot(scaffold4_features) +
 	geom_vline(aes(xintercept = Pos), scaffold4_misassemblies)
 ```
 
+# Identify misassemblies
+```{r misassemblies}
+molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 20)
+
+molecules_good <- molecules_large_scaffolds %>%
+	filter(AS_median > as_median_threshold & Size >= size_threshold)
+
+molecules_good_pos <- rbind(
+		transmute(molecules_good, Rname, Pos = Start),
+		transmute(molecules_good, Rname, Pos = End)) %>%
+	distinct()
+
+molecules_depth_good <- molecules_good_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
+	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(molecules_good, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
+	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
+	replace_na(list(Median_size = 0)) %>%
+	unnest(Rname, Pos) %>%
+	select(Rname, Pos, Depth, Median_size, everything()) %>%
+	arrange(Rname, Pos)
+
+molecules_starts <- molecules_large_scaffolds %>%
+	filter(Size >= starts_size_threshold) %>%
+	group_by(Rname, Start) %>%
+	summarize(Starts = n(), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
+	ungroup() %>%
+	rename(Pos = Start) %>%
+	full_join(molecules_depth_good, by = c("Rname", "Pos")) %>%
+	arrange(Rname, Pos) %>%
+	fill(Depth, Median_size) %>%
+	select(Rname, Pos, Depth, Median_size, everything())
+
+starts_threshold <- 3
+misassemblies <-  molecules_starts %>%
+	filter(Starts > starts_threshold & Depth < depth_good_threshold) %>%
+	select(-Sizes)
+misassemblies
+```
+
 # Store misassemblies in a TSV file
 ```{r misassemblies_tsv}
-write_tsv(scaffold4_misassemblies, "misassemblies.tsv")
+write_tsv(misassemblies, "misassemblies.tsv")
 ```
