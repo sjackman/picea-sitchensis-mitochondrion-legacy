@@ -224,9 +224,9 @@ scaffold4_features <- scaffold4_starts %>%
 	arrange(Rname, Pos) %>%
 	fill(Depth, Median_size)
 
-starts_threshold <- 3
+starts_threshold <- 4
 scaffold4_misassemblies <-  scaffold4_features %>%
-	filter(Starts > starts_threshold & Depth < depth_good_threshold) %>%
+	filter(Starts >= starts_threshold & Depth < depth_good_threshold) %>%
 	select(-Sizes)
 scaffold4_misassemblies
 
@@ -240,6 +240,11 @@ ggplot(scaffold4_features) +
 
 # Identify misassemblies
 ```{r misassemblies}
+starts_as_threshold <- -40
+starts_size_threshold <- 2000
+starts_threshold <- 4
+pos_threshold <- 2500
+
 molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 25)
 
 molecules_good <- molecules_large_scaffolds %>%
@@ -259,7 +264,7 @@ molecules_depth_good <- molecules_good_pos %>% rename(Pos_Rname = Rname) %>% row
 	arrange(Rname, Pos)
 
 molecules_starts <- molecules_large_scaffolds %>%
-	filter(Size >= starts_size_threshold) %>%
+	filter(AS_median >= starts_as_threshold & Size >= starts_size_threshold) %>%
 	group_by(Rname, Start) %>%
 	summarize(Starts = n(), Starts_median_size = median(Size), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
 	ungroup() %>%
@@ -269,14 +274,14 @@ molecules_starts <- molecules_large_scaffolds %>%
 	fill(Depth, Median_size) %>%
 	select(Rname, Pos, Depth, Median_size, everything())
 
-starts_threshold <- 3
-misassemblies <-  molecules_starts %>%
-	filter(Starts > starts_threshold & Depth < depth_good_threshold) %>%
+misassemblies <- molecules_starts %>%
+	filter(Pos >= pos_threshold & Starts >= starts_threshold & Depth < depth_good_threshold) %>%
 	select(-Sizes)
-misassemblies
+
+misassemblies %>% arrange(as.integer(Rname))
 ```
 
-```{r plot-misassemblies}
+```{r plot-misassemblies, fig.width=7, fig.height=7}
 ggplot(molecules_starts) +
 	facet_wrap(~ Rname, scales = "free_x") +
 	aes(x = Pos) +
@@ -286,7 +291,12 @@ ggplot(molecules_starts) +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
+# Count misasemblies per scaffold
+```{r misassemblies-per-scaffold}
+misassemblies %>% count(Rname) %>% arrange(as.integer(Rname))
+```
+
 # Store misassemblies in a TSV file
-```{r misassemblies_tsv}
-write_tsv(misassemblies, "misassemblies.tsv")
+```{r misassemblies-tsv}
+misassemblies %>% arrange(as.integer(Rname), Pos) %>% write_tsv("misassemblies.tsv")
 ```
