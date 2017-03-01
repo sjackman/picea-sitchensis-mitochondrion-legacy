@@ -296,7 +296,8 @@ ggplot(molecules_starts) +
 misassemblies %>% count(Rname) %>% arrange(as.integer(Rname))
 ```
 
-# Store misassemblies in a TSV file
-```{r misassemblies-tsv}
+# Store molecule depth and misassemblies in a TSV file
+```{r write-tsv}
+molecules_starts %>% select(-Sizes) %>% arrange(as.integer(Rname), Pos) %>% write_tsv("molecule-depth.tsv")
 misassemblies %>% arrange(as.integer(Rname), Pos) %>% write_tsv("misassemblies.tsv")
 ```
