@@ -240,7 +240,7 @@ ggplot(scaffold4_features) +
 
 # Identify misassemblies
 ```{r misassemblies}
-molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 20)
+molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 25)
 
 molecules_good <- molecules_large_scaffolds %>%
 	filter(AS_median > as_median_threshold & Size >= size_threshold)
@@ -261,7 +261,7 @@ molecules_depth_good <- molecules_good_pos %>% rename(Pos_Rname = Rname) %>% row
 molecules_starts <- molecules_large_scaffolds %>%
 	filter(Size >= starts_size_threshold) %>%
 	group_by(Rname, Start) %>%
-	summarize(Starts = n(), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
+	summarize(Starts = n(), Starts_median_size = median(Size), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
 	ungroup() %>%
 	rename(Pos = Start) %>%
 	full_join(molecules_depth_good, by = c("Rname", "Pos")) %>%
@@ -274,6 +274,16 @@ misassemblies <-  molecules_starts %>%
 	filter(Starts > starts_threshold & Depth < depth_good_threshold) %>%
 	select(-Sizes)
 misassemblies
+```
+
+```{r plot-misassemblies}
+ggplot(molecules_starts) +
+	facet_wrap(~ Rname, scales = "free_x") +
+	aes(x = Pos) +
+	geom_point(aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold)) +
+	geom_point(aes(y = Starts)) +
+	geom_vline(aes(xintercept = Pos), misassemblies) +
+	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
 # Store misassemblies in a TSV file
