@@ -250,6 +250,8 @@ molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 25)
 molecules_good <- molecules_large_scaffolds %>%
 	filter(AS_median > as_median_threshold & Size >= size_threshold)
 
+molecules_large_scaffolds_good <- molecules_good %>% filter(as.integer(Rname) <= 25)
+
 molecules_good_pos <- rbind(
 		transmute(molecules_good, Rname, Pos = Start),
 		transmute(molecules_good, Rname, Pos = End)) %>%
@@ -281,7 +283,8 @@ misassemblies <- molecules_starts %>%
 misassemblies %>% arrange(as.integer(Rname))
 ```
 
-```{r plot-misassemblies, fig.width=7, fig.height=7}
+# Plot misassemblies, depth of molecule coverage and molecule starts
+```{r misassemblies-depth, fig.width=7, fig.height=7}
 ggplot(molecules_starts) +
 	facet_wrap(~ Rname, scales = "free_x") +
 	aes(x = Pos) +
@@ -289,6 +292,25 @@ ggplot(molecules_starts) +
 	geom_point(aes(y = Starts)) +
 	geom_vline(aes(xintercept = Pos), misassemblies) +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3))
+```
+
+# Plot misassemblies and scatter plot of start and end coordinates
+```{r misassemblies-start-end, fig.width=7, fig.height=7}
+ggplot(molecules_large_scaffolds_good) +
+	aes(x = Start, y = End, alpha = Reads) +
+	geom_point(size = 1) +
+	geom_vline(aes(xintercept = Pos), misassemblies) +
+	facet_wrap(~ Rname, scales = "free") +
+	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
+	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
+
+ggplot(molecules_large_scaffolds_good) +
+	aes(x = Start, y = End) +
+	geom_bin2d(binwidth = 2000) +
+	geom_vline(aes(xintercept = Pos), misassemblies) +
+	facet_wrap(~ Rname, scales = "free") +
+	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
+	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
 # Count misasemblies per scaffold
