@@ -32,8 +32,20 @@ molecules_orig <- read_tsv(molecules_filename)
 
 # Filter
 ```{r filter}
-count_threshold <- 4
-molecules <- molecules_orig %>% filter(Reads >= count_threshold)
+reads_threshold <- 4
+molecules <- molecules_orig %>% filter(Reads >= reads_threshold) %>%
+	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
+
+as_median_threshold <- -4
+size_threshold <- 500
+rname_threshold <- 25
+
+molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= rname_threshold)
+
+molecules_good <- molecules_large_scaffolds %>%
+	filter(AS_median > as_median_threshold & Size >= size_threshold)
+
+molecules_large_scaffolds_good <- molecules_good %>% filter(as.integer(Rname) <= rname_threshold)
 ```
 
 # Histogram of molecule size
@@ -75,12 +87,12 @@ ggplot(molecules) + aes(x = Reads, weight = Reads) +
 # Histogram of alignment score (AS)
 ```{r histogram-as}
 ggplot(molecules) + aes(x = AS_median) +
-	geom_histogram(binwidth = 1, boundary = 0) +
+	geom_histogram(binwidth = 2, boundary = 0) +
 	scale_x_continuous(limits = c(-150, 0)) +
 	scale_y_continuous(name = "Number of molecules", labels = comma)
 
 ggplot(molecules) + aes(x = AS_median, weight = Reads) +
-	geom_histogram(binwidth = 1, boundary = 0) +
+	geom_histogram(binwidth = 2, boundary = 0) +
 	scale_x_continuous(limits = c(-150, 0)) +
 	scale_y_continuous(name = "Number of reads", labels = comma)
 ```
@@ -116,30 +128,64 @@ ggplot(dna_per_barcode) + aes(x = DNA) +
 	scale_y_continuous(name = "Number of barcodes", labels = comma)
 ```
 
+# Read density per molecule
+```{r read-density}
+# Molecules that span the scaffold4 misassembly.
+scaffold4_spanners <- molecules %>% filter(Rname == "4" & Start < 108910 & End > 109284)
+
+ggplot(molecules) +
+	aes(x = LogReadDensity) +
+	geom_histogram(boundary = 0, binwidth = 0.1) +
+	geom_vline(data = tibble(LogReadDensity = boxplot.stats(molecules$LogReadDensity)$stats), aes(xintercept = LogReadDensity),
+		colour = "blue", linetype = "dashed", alpha = 0.5) +
+	geom_vline(data = scaffold4_spanners, aes(xintercept = LogReadDensity), alpha = 0.5)
+
+ggplot(molecules_good) +
+	aes(x = LogReadDensity) +
+	geom_histogram(boundary = 0, binwidth = 0.1) +
+	geom_vline(data = tibble(LogReadDensity = boxplot.stats(molecules_good$LogReadDensity)$stats), aes(xintercept = LogReadDensity),
+		colour = "blue", linetype = "dashed", alpha = 0.5) +
+	geom_vline(data = scaffold4_spanners, aes(xintercept = LogReadDensity), alpha = 0.5) +
+	labs(caption = "Filtered by Size and AS")
+```
+
 # Heatmap of molecule size and number of reads per molecule
 ```{r heatmap-reads-size}
-ggplot(molecules) + aes(x = Size, y = Reads) + geom_hex() +
+ggplot(molecules) + aes(x = Size, y = Reads) +
+	geom_hex() +
+	geom_smooth() +
 	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
 	scale_y_log10(name = "Number of reads per molecule", labels = comma) +
 	scale_fill_continuous("Number of molecules", trans = log10_trans(), labels = comma)
+```
 
-ggplot(molecules) + aes(x = Size, y = Reads, weight = Reads) + geom_hex() +
+# Heatmap of molecule size and read density per molecule
+```{r heatmap-size-density}
+ggplot(molecules) + aes(x = Size, y = LogReadDensity) +
+	geom_hex() +
+	geom_smooth() +
 	scale_x_continuous(name = "Molecule size", labels = unit_format(unit = "kbp", scale = 1e-3)) +
-	scale_y_log10(name = "Number of reads per molecule", labels = comma) +
-	scale_fill_continuous("Number of reads", trans = log10_trans(), labels = comma)
+	scale_y_continuous(name = "Log10 read density", labels = comma) +
+	scale_fill_continuous("Number of molecules", trans = log10_trans(), labels = comma)
+```
+
+# Heatmap of number of reads and read density per molecule
+```{r heatmap-reads-density}
+ggplot(molecules) + aes(x = Reads, y = LogReadDensity) +
+	geom_hex() +
+	geom_smooth() +
+	scale_x_log10(name = "Number of reads per molecule", labels = comma) +
+	scale_y_continuous(name = "Log10 read density", labels = comma) +
+	scale_fill_continuous("Number of molecules", trans = log10_trans(), labels = comma)
 ```
 
 # Scaffold 4
 
 # Scatter plot of start and end coordinates
 ```{r scatter-start-end}
-as_median_threshold <- -4
-size_threshold <- 500
-
 scaffold4_all <- molecules %>% filter(Rname == "4")
 scaffold4_good <- molecules %>% filter(Rname == "4" & AS_median > as_median_threshold & Size >= size_threshold)
 scaffold4 <- scaffold4_all
-scaffold4 %>% filter(Start < 108910 & End > 109284)
 
 ggplot(scaffold4) + aes(x = Start, y = End, alpha = Reads) + geom_point()
 ggplot(scaffold4) + aes(x = Start, y = Size) + geom_point()
@@ -244,13 +290,6 @@ starts_as_threshold <- -40
 starts_size_threshold <- 2000
 starts_threshold <- 4
 pos_threshold <- 2500
-
-molecules_large_scaffolds <- molecules %>% filter(as.integer(Rname) <= 25)
-
-molecules_good <- molecules_large_scaffolds %>%
-	filter(AS_median > as_median_threshold & Size >= size_threshold)
-
-molecules_large_scaffolds_good <- molecules_good %>% filter(as.integer(Rname) <= 25)
 
 molecules_good_pos <- rbind(
 		transmute(molecules_good, Rname, Pos = Start),
