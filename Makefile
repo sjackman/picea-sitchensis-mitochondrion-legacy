@@ -297,6 +297,10 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 %.bam.names.tsv: %.bam
 	(printf "QName\tTName\n"; samtools view $< | cut -f1,3) >$@
 
+# Filter reads by alignment score.
+%.as-30.bx.tsv: %.bx.tsv
+	mlr --tsvlite filter '$$AS >= -30' $< >$@
+
 # Create a TSV file of molecule extents.
 %.bx.molecule.tsv: %.bx.tsv
 	mlr --tsvlite \
