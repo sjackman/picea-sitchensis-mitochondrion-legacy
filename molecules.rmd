@@ -340,6 +340,25 @@ ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
 	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
+# Scaffold 12: Plot misassemblies and molecule start and end coordinates
+```{r scaffold12-misassemblies-depth}
+scaffold_name <- "12"
+molecules_starts %>% filter(Rname == scaffold_name) %>% ggplot() +
+	geom_point(aes(x = Pos, y = Depth), size = 1) +
+	geom_point(aes(x = Pos, y = Starts)) +
+	geom_hline(yintercept = c(depth_good_threshold, starts_threshold), colour = "orange") +
+	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name)) +
+	scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+
+molecules_good %>% filter(Rname == scaffold_name) %>% ggplot() +
+	aes(x = Start, y = End, alpha = Reads) +
+	geom_point(size = 1) +
+	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name)) +
+	facet_wrap(~ Rname, scales = "free") +
+	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
+	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
+```
+
 # Count misasemblies per scaffold
 ```{r misassemblies-per-scaffold}
 misassemblies %>% count(Rname) %>% arrange(as.integer(Rname))
