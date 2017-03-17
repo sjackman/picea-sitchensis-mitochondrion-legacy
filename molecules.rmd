@@ -39,7 +39,7 @@ molecules_good_orig <- read_tsv(molecules_good_filename)
 # Filter
 ```{r filter}
 reads_threshold <- 4
-as_median_threshold <- -3.5
+as_median_threshold <- -3
 size_threshold <- 500
 rname_threshold <- 25
 
@@ -239,7 +239,7 @@ scaffold4_depth_good <- scaffold4_good_pos %>% rename(Pos_Rname = Rname) %>% row
 
 # Depth of molecule coverage (filtered by Size and AS)
 ```{r depth-of-coverage-good}
-depth_good_threshold <- 50
+depth_good_threshold <- 75
 ggplot(scaffold4_depth_good) + aes(x = Depth) + geom_histogram(binwidth = 1)
 ggplot(scaffold4_depth_good) + aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold) + geom_point()
 ```
