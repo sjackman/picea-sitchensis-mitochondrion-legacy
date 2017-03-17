@@ -16,6 +16,7 @@ params:
 ---
 
 ```{r setup}
+library(cowplot)
 library(dplyr)
 library(knitr)
 library(magrittr)
@@ -163,122 +164,14 @@ ggplot(molecules) + aes(x = Reads, y = LogReadDensity) +
 	scale_fill_continuous("Number of molecules", trans = log10_trans(), labels = comma)
 ```
 
-# Scaffold 4
-
-# Scatter plot of start and end coordinates
-```{r scatter-start-end}
-scaffold4 <- molecules %>% filter(Rname == "4")
-scaffold4_good <- molecules_good %>% filter(Rname == "4")
-
-ggplot(scaffold4) + aes(x = Start, y = End, alpha = Reads) + geom_point()
-ggplot(scaffold4_good) + aes(x = Start, y = End, alpha = Reads) + geom_point()
-```
-
-# Molecules that span the misassembly
-```{r scaffold4-spanning-molecules}
-scaffold4 %>% filter(Start < 108910, End > 109284)
-molecules_good_orig %>% filter(Rname == "4", Start < 108910, End > 109284)
-```
-
-# Histogram of start coordinates
-```{r histogram-start}
-starts_size_threshold <- 2000
-ggplot(scaffold4 %>% filter(Size >= starts_size_threshold)) + aes(x = Start) + geom_histogram(binwidth = 1) + xlim(108500, 109500)
-scaffold4_starts <- scaffold4 %>%
-	filter(Size >= starts_size_threshold) %>%
-	group_by(Rname, Start) %>%
-	summarize(Starts = n(), AS_median = median(AS_median), Reads = sum(Reads)) %>%
-	ungroup() %>%
-	rename(Pos = Start) %>%
-	arrange(Rname, Pos)
-scaffold4_starts %>% arrange(desc(Starts)) %>% head
-```
-
-# Calculate statistics of molecules spanning each position
-```{r molecultes-statistics}
-scaffold4_pos <- rbind(
-		transmute(scaffold4, Rname, Pos = Start),
-		transmute(scaffold4, Rname, Pos = End)) %>%
-	distinct()
-scaffold4_depth <- scaffold4_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
-	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(scaffold4, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
-	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
-	replace_na(list(Median_size = 0)) %>%
-	unnest(Rname, Pos) %>%
-	select(Rname, Pos, Depth, Median_size, everything()) %>%
-	arrange(Rname, Pos)
-```
-
-# Depth of molecule coverage
-```{r depth-of-coverage}
-ggplot(scaffold4_depth) + aes(x = Depth) + geom_histogram(binwidth = 1)
-ggplot(scaffold4_depth) + aes(x = Pos, y = Depth, colour = Depth < 100) + geom_point()
-scaffold4_depth %>% filter(Depth < 100 & Pos > 2000 & Pos < 117000) %>% summarize(min(Pos), max(Pos))
-```
-
-# Median molecule size spanning each position
-```{r median-size-all}
-ggplot(scaffold4_depth) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
-ggplot(scaffold4_depth) + aes(x = Pos, y = Median_size, colour = Median_size < 10000) + geom_point()
-```
-
-# Calculate statistics of molecules spanning each position (filtered by Size and AS)
-```{r molecultes-statistics-good}
-scaffold4_good_pos <- rbind(
-		transmute(scaffold4_good, Rname, Pos = Start),
-		transmute(scaffold4_good, Rname, Pos = End)) %>%
-	distinct()
-scaffold4_depth_good <- scaffold4_good_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
-	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(scaffold4_good, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
-	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
-	replace_na(list(Median_size = 0)) %>%
-	unnest(Rname, Pos) %>%
-	select(Rname, Pos, Depth, Median_size, everything()) %>%
-	arrange(Rname, Pos)
-```
-
-# Depth of molecule coverage (filtered by Size and AS)
-```{r depth-of-coverage-good}
+# Identify misassemblies
+```{r identify-misassemblies}
 depth_good_threshold <- 75
-ggplot(scaffold4_depth_good) + aes(x = Depth) + geom_histogram(binwidth = 1)
-ggplot(scaffold4_depth_good) + aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold) + geom_point()
-```
-
-# Median molecule size spanning each position (filtered by Size and AS)
-```{r median-size-good}
-median_size_threshold <- 10000
-ggplot(scaffold4_depth_good) + aes(x = Median_size) + geom_histogram(binwidth = 1000, boundary = 0)
-ggplot(scaffold4_depth_good) + aes(x = Pos, y = Median_size, colour = Median_size < median_size_threshold) + geom_point()
-```
-
-# Identify misassemblies in scaffold 4
-```{r misassemblies-scaffold4}
+pos_threshold <- 2500
 starts_as_threshold <- -30
 starts_size_threshold <- 2000
 starts_threshold <- 4
-pos_threshold <- 2500
 
-scaffold4_features <- scaffold4_starts %>%
-	full_join(scaffold4_depth_good, by = c("Rname", "Pos")) %>%
-	select(Rname, Pos, everything()) %>%
-	arrange(Rname, Pos) %>%
-	fill(Depth, Median_size)
-
-scaffold4_misassemblies <- scaffold4_features %>%
-	filter(Starts >= starts_threshold & Depth < depth_good_threshold) %>%
-	select(-Sizes)
-scaffold4_misassemblies
-
-ggplot(scaffold4_features) +
-	aes(x = Pos) +
-	geom_point(aes(y = Median_size / 1000, colour = Median_size < 10000)) +
-	geom_point(aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold)) +
-	geom_point(aes(y = Starts)) +
-	geom_vline(aes(xintercept = Pos), scaffold4_misassemblies)
-```
-
-# Identify misassemblies
-```{r misassemblies}
 molecules_good_pos <- rbind(
 		transmute(molecules_good, Rname, Pos = Start),
 		transmute(molecules_good, Rname, Pos = End)) %>%
@@ -343,24 +236,41 @@ ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
 	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
-# Scaffold 12: Plot misassemblies and molecule start and end coordinates
-```{r scaffold12-misassemblies-depth}
-scaffold_name <- "12"
-molecules_starts %>% filter(Rname == scaffold_name) %>% ggplot() +
-	geom_point(aes(x = Pos, y = Depth), size = 1) +
-	geom_point(aes(x = Pos, y = Starts)) +
-	geom_hline(yintercept = c(depth_good_threshold, starts_threshold), colour = "orange", linetype = "dashed") +
-	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-	scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+# Plot misassemblies and molecule start and end coordinates of a scaffold
+```{r ggplot-misassemblies}
+ggplot_misassemblies <- function(scaffold_name) {
+	max_x <- max(
+		filter(molecules, Rname == scaffold_name)$End,
+		filter(molecules_starts, Rname == scaffold_name)$Pos)
 
-molecules_good %>% filter(Rname == scaffold_name) %>% ggplot() +
-	aes(x = Start, y = End, alpha = Reads) +
-	geom_point(size = 1) +
-	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-	geom_hline(aes(yintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-	facet_wrap(~ Rname, scales = "free") +
-	scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3)) +
-	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
+	scatter_plot <- molecules_good %>% filter(Rname == scaffold_name) %>% ggplot() +
+		aes(x = Start, y = End) +
+		geom_point(size = 1) +
+		geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
+		geom_hline(aes(yintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
+		scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x)) +
+		scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x))
+
+	plot <- molecules_starts %>% filter(Rname == scaffold_name) %>% ggplot() +
+		geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
+		scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x))
+
+	depth_plot <- plot + geom_point(aes(x = Pos, y = Depth), size = 1) +
+		geom_hline(yintercept = depth_good_threshold, colour = "orange", linetype = "dashed")
+
+	starts_plot <- plot + geom_point(aes(x = Pos, y = Starts), size = 1) +
+		geom_hline(yintercept = starts_threshold, colour = "orange", linetype = "dashed")
+
+	plot_grid(scatter_plot, depth_plot, starts_plot, ncol = 1, align = "v", rel_heights = c(3, 1, 1), labels = scaffold_name)
+}
+```
+
+# Plot misassemblies and molecule start and end coordinates of a scaffold
+```{r plot-misassemblies}
+misassemblies %>%
+	arrange(as.integer(Rname)) %$%
+	unique(Rname) %>%
+	map(ggplot_misassemblies)
 ```
 
 # Count misasemblies per scaffold
