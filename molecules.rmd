@@ -315,18 +315,20 @@ misassemblies %>% arrange(as.integer(Rname))
 ggplot(molecules_starts) +
 	facet_wrap(~ Rname, scales = "free_x") +
 	aes(x = Pos) +
-	geom_point(aes(x = Pos, y = Depth, colour = Depth < depth_good_threshold)) +
-	geom_point(aes(y = Starts)) +
-	geom_vline(aes(xintercept = Pos), misassemblies) +
+	geom_point(aes(x = Pos, y = Depth), size = 0.5) +
+	geom_point(aes(y = Starts), size = 0.5) +
+	geom_hline(yintercept = depth_good_threshold, colour = "orange", linetype = "dashed") +
+	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3))
 ```
 
 # Plot misassemblies and scatter plot of start and end coordinates
 ```{r misassemblies-start-end, fig.width=7, fig.height=7}
-ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
+molecules_good %>% filter(as.integer(Rname) <= rname_threshold) %>% ggplot() +
 	aes(x = Start, y = End, alpha = Reads) +
 	geom_point(size = 1) +
-	geom_vline(aes(xintercept = Pos), misassemblies) +
+	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
+	geom_hline(aes(yintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
 	facet_wrap(~ Rname, scales = "free") +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
 	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
@@ -334,7 +336,8 @@ ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
 ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
 	aes(x = Start, y = End) +
 	geom_bin2d(binwidth = 2000) +
-	geom_vline(aes(xintercept = Pos), misassemblies) +
+	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
+	geom_hline(aes(yintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
 	facet_wrap(~ Rname, scales = "free") +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
 	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
@@ -346,17 +349,18 @@ scaffold_name <- "12"
 molecules_starts %>% filter(Rname == scaffold_name) %>% ggplot() +
 	geom_point(aes(x = Pos, y = Depth), size = 1) +
 	geom_point(aes(x = Pos, y = Starts)) +
-	geom_hline(yintercept = c(depth_good_threshold, starts_threshold), colour = "orange") +
-	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name)) +
+	geom_hline(yintercept = c(depth_good_threshold, starts_threshold), colour = "orange", linetype = "dashed") +
+	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
 	scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
 
 molecules_good %>% filter(Rname == scaffold_name) %>% ggplot() +
 	aes(x = Start, y = End, alpha = Reads) +
 	geom_point(size = 1) +
-	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name)) +
+	geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
+	geom_hline(aes(yintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
 	facet_wrap(~ Rname, scales = "free") +
-	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
-	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
+	scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3)) +
+	scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3))
 ```
 
 # Count misasemblies per scaffold
