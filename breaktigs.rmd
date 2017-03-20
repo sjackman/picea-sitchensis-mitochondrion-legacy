@@ -1,0 +1,66 @@
+---
+title: Break scaffolds at loci not supported by molecules
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of misassemblies"
+    value: "psitchensiscpmt_2.breakpoints.tsv"
+    input: text
+  input_fai:
+    label: "Input FAI file of scaffold sizes"
+    value: "psitchensiscpmt_2.fa.fai"
+    input: text
+  output_bed:
+    label: "Output BED file of breaktig coordinates"
+    value: "psitchensiscpmt_2.breakpoints.tigs.bed"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(knitr)
+library(magrittr)
+library(readr)
+library(ggplot2)
+library(scales)
+library(tidyr)
+library(uniqtag)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+misassemblies_filename <- params$input_tsv
+fai_filename <- params$input_fai
+output_bed_filename <- params$output_bed
+```
+
+# Read the data
+```{r read-data}
+misassemblies_orig <- read_tsv(misassemblies_filename, col_types = cols(Rname = col_character()))
+misassemblies <- misassemblies_orig %>% select(Rname, Pos)
+
+fai <- read_tsv(fai_filename, col_names = c("Rname", "Pos"), col_types = "ci---")
+```
+
+# Determine coordinates of subsequences
+```{r transform}
+bed <- rbind(misassemblies, fai %>%
+	mutate(Pos = 0L), fai) %>%
+	arrange(!is.na(as.integer(Rname)), as.integer(Rname), Rname, Pos) %>%
+	mutate(Start = Pos, End = lead(Pos)) %>%
+	select(-Pos) %>%
+	drop_na() %>%
+	filter(Start <= End) %>%
+	mutate(Name = make_unique(Rname))
+```
+
+# Write the BED file to disk
+```{r write-results}
+bed %>% write_tsv(output_bed_filename, col_names = FALSE)
+```
+
+# Coordinates of subsequences
+```{r table}
+bed
+```
