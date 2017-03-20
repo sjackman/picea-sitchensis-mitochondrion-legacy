@@ -38,7 +38,7 @@ all: assembly-stats.html
 install-deps:
 	brew install pigz
 	brew tap homebrew/science
-	brew install arcs bcftools bwa edirect fastqc miller samtools seqtk
+	brew install arcs bcftools bedtools bwa edirect fastqc miller samtools seqtk
 
 .PHONY: all clean install-deps
 .DELETE_ON_ERROR:
@@ -55,6 +55,10 @@ psitchensismt_2.fa: abyss/2.0.1/k75/kc4/arcs/psitchensis-scaffolds.nocp.2500bp.f
 # Combine the plastome and chondrome into a single reference
 psitchensiscpmt_2.fa: KU215903.fa psitchensismt_2.fa
 	cat $^ >$@
+
+# Break scaffolds at loci not supported by molecules.
+psitchensiscpmt_3.fa: psitchensiscpmt_2.breakpoints.tigs.bed.2500bp.fa
+	ln -sf $< $@
 
 # Entrez Direct
 
@@ -317,6 +321,20 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 		put '$$Start = $$Start - 1; $$End = $$End - 1' \
 		then put '$$Name = "Reads=" . $$Reads . ",Size=" . $$Size . ",Mapq=" . $$Mapq_median . ",AS=" . $$AS_median . ",BX=" . $$BX . ",MI=" . $$MI' \
 		then cut -o -f Rname,Start,End,Name,Reads $< >$@
+
+# Identify misassemblies
+
+# Calculate molecule depth of coverage.
+psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.wgs.bam.bx.molecule.tsv %.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv
+	Rscript -e 'rmarkdown::render("molecules.rmd")'
+
+# Determine coordinates of subsequences.
+psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv: %.fa.fai
+	Rscript -e 'rmarkdown::render("breaktigs.rmd")'
+
+# Break scaffolds at loci not supported by molecules.
+%.breakpoints.tigs.bed.fa: %.breakpoints.tigs.bed %.fa
+	bedtools getfasta -name -fi $*.fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
 
 # igvtools
 

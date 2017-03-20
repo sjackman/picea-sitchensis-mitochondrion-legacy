@@ -13,6 +13,10 @@ params:
     label: "Input filtered TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
     value: "psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv"
     input: text
+  output_breakpoints_tsv:
+    label: "Output TSV file of breakpoints"
+    value: "psitchensiscpmt_2.breakpoints.tsv"
+    input: text
 ---
 
 ```{r setup}
@@ -29,6 +33,7 @@ library(tidyr)
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
 molecules_filename <- params$raw_tsv
 molecules_good_filename <- params$filtered_tsv
+output_breakpoints_tsv_filename <- params$output_breakpoints_tsv
 ```
 
 # Read data
@@ -281,5 +286,5 @@ misassemblies %>% count(Rname) %>% arrange(as.integer(Rname))
 # Store molecule depth and misassemblies in a TSV file
 ```{r write-tsv}
 molecules_starts %>% select(-Sizes) %>% arrange(as.integer(Rname), Pos) %>% write_tsv("molecule-depth.tsv")
-misassemblies %>% arrange(as.integer(Rname), Pos) %>% write_tsv("misassemblies.tsv")
+misassemblies %>% arrange(as.integer(Rname), Pos) %>% write_tsv(output_breakpoints_tsv_filename)
 ```
