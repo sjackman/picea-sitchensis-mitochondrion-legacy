@@ -305,6 +305,14 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 %.as-30.bx.tsv: %.bx.tsv
 	mlr --tsvlite filter '$$AS >= -30' $< >$@
 
+# Filter reads by alignment score.
+%.as50.bx.tsv: %.bx.tsv
+	mlr --tsvlite filter '$$AS >= 50' $< >$@
+
+# Filter reads by alignment score.
+%.as100.bx.tsv: %.bx.tsv
+	mlr --tsvlite filter '$$AS >= 100' $< >$@
+
 # Create a TSV file of molecule extents.
 %.bx.molecule.tsv: %.bx.tsv
 	mlr --tsvlite \
