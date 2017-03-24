@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+exec tail -n+2 "$@" | mlr --tsvlite \
+	then cut -f 'LINKS_scaffold_ID,original_name,orientation(f=forward/r=reverse)' \
+	then label 'Scaffold,Name,Orientation' \
+	then put '$Vertex = sub($Name, " .*", "") . sub(sub($Orientation, "f", "+"), "r", "-")' \
+	then cut -f 'Scaffold,Vertex' \
+	then put '$Scaffold == @Scaffold { $U = @U; $V = $Vertex } @Scaffold = $Scaffold; @U = $Vertex' \
+	then cut -f 'Scaffold,U,V' \
+	then filter 'is_present($U)' \
+	then put -q '
+		func rc(s) { return sub(sub(sub(s, "[+]$", "x"), "-$", "+"), "x$", "-") }
+		begin { print "digraph links {" }
+		print "\"" . $U . "\"\t->\t\"" . $V . "\"\t[scaffold=\"" . sub($Scaffold, "scaffold", "") . "+\"]";
+		print "\"" . rc($V) . "\"\t->\t\"" . rc($U) . "\"\t[scaffold=\"" . sub($Scaffold, "scaffold", "") . "-\"]";
+		end { print "}" }'
