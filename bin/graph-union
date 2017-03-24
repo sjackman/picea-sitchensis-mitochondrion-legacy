@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+exec gvpr '
+BEGIN {
+	graph_t G = graph("union", "S");
+	string colours[int];
+	colours[0] = "black";
+	colours[1] = "blue";
+	colours[2] = "darkgreen";
+	colours[3] = "red";
+	int i = 0;
+}
+BEG_G {
+	string colour = colours[i++];
+}
+E {
+	edge_t e = clone(G, $);
+	e.color = colour;
+	e.head.color = colour;
+	e.tail.color = colour;
+}
+END {
+	write(G);
+}' "$@"
