@@ -193,6 +193,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.gv.dot.png: %.gv
 	dot -Tpng -o $@ $<
 
+# Render a graph to PNG using dot and gvpack.
+%.gv.gvpack.dot.png: %.gv
+	(ccomps -x $< || true) | dot | gvpack -g | neato -s -n2 -Tpng -o $@
+
 # Render a graph to PNG using neato.
 %.gv.neato.png: %.gv
 	neato -Tpng -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
