@@ -58,6 +58,21 @@ molecules_good <- molecules_good_orig %>%
 	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
 ```
 
+# Write a list of good barcodes to a TSV file and a text file
+```{r good-barcodes}
+good_barcodes <- molecules_good %>%
+	filter(Reads >= reads_threshold, AS_median >= as_median_threshold, Size >= size_threshold) %>%
+	group_by(BX) %>%
+	summarize(Molecules = n(), Reads = sum(Reads)) %>%
+	arrange(desc(Reads)) %>%
+	ungroup()
+
+good_barcodes %>% write_tsv("psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.bx.atleast4.tsv")
+
+good_barcodes %>% select(BX) %>% arrange(BX) %>%
+	write_tsv("psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.bx.atleast4.txt", col_names = FALSE)
+```
+
 # Histogram of molecule size
 ```{r histogram-size}
 ggplot(molecules) + aes(x = Size) +
