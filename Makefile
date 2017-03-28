@@ -189,6 +189,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.m5.gv: %.gv
 	gvpr 'E[label >= 5]' -o $@ $<
 
+# Render a graph to PNG using dot.
+%.gv.dot.png: %.gv
+	dot -Tpng -o $@ $<
+
 # Render a graph to PNG using neato.
 %.gv.neato.png: %.gv
 	neato -Tpng -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
@@ -455,19 +459,22 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 c=1
 e=50000
 r=0.220000
-%.c$c_e$e_r$r.arcs.gv: %.sortn.bam $(abyss_scaffolds).fa
+%.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv: %.sortn.bam $(abyss_scaffolds).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
-		-f $(abyss_scaffolds).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs
-	mv $*.c$c_e$e_r$r.arcs_original.gv $@
+		-f $(abyss_scaffolds).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs -g $*.c$c_e$e_r$r.arcs.dist.gv
 
 # Convert the ARCS graph to LINKS TSV format.
-%.arcs.tsv: %.arcs.gv $(abyss_scaffolds).fa
+%.arcs.tsv: %.arcs_original.gv $(abyss_scaffolds).fa
 	bin/arcs-makeTSVfile $< $@ $(abyss_scaffolds).fa
+
+# Filter the edges of a graph by their attribute n and label them.
+%.n$l.gv: %.gv
+	gvpr 'N{label = sprintf("%s\\n%u bp", name, l)} E{label = n} E[n >= $l]' $< >$@
 
 # Scaffold the assembly using the ARCS graph and LINKS.
 a=0.999999
 l=1
-%.arcs.a$a_l$l.links.scaffolds.fa: %.arcs.tsv $(abyss_scaffolds).fa
+%.arcs.a$a_l$l.links.scaffolds.fa %.arcs.a$a_l$l.links.assembly_correspondence.tsv: %.arcs.tsv $(abyss_scaffolds).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
 	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(abyss_scaffolds).fa -b $*.arcs.a$a_l$l.links
 
@@ -475,6 +482,14 @@ l=1
 %/arcs/psitchensis-scaffolds.fa: %/psitchensis-scaffolds.psitchensis.bx.atleast4.c$c_e$e_r$r.arcs.a$a_l$l.links.scaffolds.fa
 	mkdir -p $(@D)
 	gsed -r 's/^>scaffold([^,]*),(.*)/>\1 scaffold\1,\2/' $< >$@
+
+# Convert the LINKS assembly_correspondence.tsv file to GraphViz format.
+%.links.path.gv: %.links.assembly_correspondence.tsv
+	bin/links-correspondence-to-gv $< >$@
+
+# Combine the ARCS and LINKS graphs
+%.arcs.a$a_l$l.links.dist.path.gv: %.arcs.dist.n$l.gv %.arcs.a$a_l$l.links.path.gv
+	bin/graph-union $^ >$@
 
 # Select scaffolds at least 2 kbp.
 %.2kbp.fa: %.fa
