@@ -493,7 +493,39 @@ l=10
 
 # Combine the ARCS and LINKS graphs
 %.arcs.a$a_l$l.links.dist.path.gv: %.arcs.dist.n$l.gv %.arcs.a$a_l$l.links.path.gv
+	bin/graph-union-strict $^ >$@
+
+# ABySS-Scaffold
+
+# Scaffold the assembly using the ARCS graph and abyss-scaffold.
+s=500-50000
+n=10
+%.arcs.n$n.abyss-scaffold.path: $(abyss_scaffolds).fa.fai %.arcs.dist.gv
+	abyss-scaffold -v -k$k -s$s -n$n -o $@ $^
+
+# Generate the FASTA file of the scaffolds.
+%.arcs.n$n.abyss-scaffold.fa: $(abyss_scaffolds).fa $(abyss_scaffolds).fa.fai %.arcs.n$n.abyss-scaffold.path
+	MergeContigs -v -k$k -o $@ $^
+
+# Convert the path file to GraphViz format.
+%.path.gv: %.path
+	perl -n \
+		-e 'chomp;' \
+		-e 'sub rc($$) { my $$s = shift; my $$c = chop $$s; $$s . ($$c eq "+" ? "-" : $$c eq "-" ? "+" : $$c) }' \
+		-e 'my ($$id, @path) = split;' \
+		-e 'print $$id, "+\t", join(" ", @path), "\n";' \
+		-e 'for $$i (@path) { $$i = rc($$i) };' \
+		-e 'print $$id, "-\t", join(" ", reverse @path), "\n";' \
+		$< \
+	| { echo 'digraph g {'; \
+		gsed -e 's/ [^ ]*N//g' -e 's/ /" -> "/g' -e 's/^[^\t]*/subgraph "cluster_&" { label="&"/' -e 's/\t/ "/' -e 's/$$/" }/'; \
+		 echo '}' } >$@
+
+# Combine the ARCS, LINKS and abyss-scaffold graphs
+%.arcs.a$a_l$l.links.abyss-scaffold.path.gv: %.arcs.dist.n$l.gv %.arcs.a$a_l$l.links.path.gv %.arcs.n$n.abyss-scaffold.path.gv
 	bin/graph-union $^ >$@
+
+# Filter scaffolds
 
 # Select scaffolds at least 2 kbp.
 %.2kbp.fa: %.fa
