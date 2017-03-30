@@ -11,12 +11,14 @@ library(dplyr)
 library(ggplot2)
 library(purrr)
 library(readr)
+library(rPref)
 library(tidyr)
 ```
 
 # Read data
 ```{r read-data}
-counts <- read_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.tsv")
+counts <- read_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.tsv") %>%
+	mutate(cp = grepl("KU", U) | grepl("KU", V))
 ```
 
 # Determine enrichment of barcode overlap
@@ -68,6 +70,7 @@ fpr <- list(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1) %>% map_df(
 		min_shared = min(Count_shared)))
 fpr
 ```
+
 # Plot FPR
 ```{r plot-fpr}
 ggplot(fpr %>%
@@ -79,11 +82,46 @@ ggplot(fpr %>%
 	scale_y_continuous(breaks = function(x) seq(0, x[2], 100))
 ```
 
-# Inspect hits
-```{r hits}
-q_threshold = 0.05
-hits <- p_values %>%
-	filter(q < q_threshold)
+# Histogram of number of shared barcodes
+```{r plot-shared}
+ggplot(p_values) +
+	aes(x = Count_shared, group = q < 0.05, fill = q < 0.05) +
+	geom_histogram(binwidth = 5, boundary = 0) +
+	coord_cartesian(ylim = c(0, 200))
+```
+
+# Inspect plastid
+```{r plastid}
+p_values %>% filter(cp) %>% nrow()
+p_values %>% filter(cp, Count_shared >= 5) %>% nrow()
+p_values %>% filter(cp, Count_shared >= 10) %>% nrow()
+p_values %>% filter(cp, Count_shared >= 20) %>% nrow()
+p_values %>% filter(cp, Count_shared >= 30) %>% nrow()
+
+p_values %>% filter(cp, q < 0.05)
+p_values %>% filter(cp, q < 0.02)
+
+p_values %>% filter(cp, q < 0.05, Count_shared >= 10)
+```
+
+# Scatter plot of FPR and shared barcodes
+```{r scatter-fpr-shared}
+ggplot(p_values) +
+	aes(x = Count_shared, y = q, colour = cp) +
+	geom_point() +
+	coord_cartesian(c(0, 25))
+```
+
+# Pareto frontier of plastid FPR and shared barcodes
+```{r plastid-pareto}
+cp_pareto <- p_values %>% filter(cp) %>%
+	psel(low(q) * high(Count_shared), top = nrow(p_values)) %>%
+	rename(Pareto = .level)
+
+ggplot(cp_pareto) +
+	aes(x = Count_shared, y = q) +
+	geom_point() +
+	geom_step(data = filter(cp_pareto, Pareto == 1), direction = "vh")
 ```
 
 # Write data
