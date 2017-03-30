@@ -1,0 +1,92 @@
+---
+title: Determine enrichment of barcode overlap
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r setup}
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(readr)
+library(tidyr)
+```
+
+# Read data
+```{r read-data}
+counts <- read_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.tsv")
+```
+
+# Determine enrichment of barcode overlap
+```{r transform-data}
+p_values <- counts %>%
+	rowwise() %>%
+	mutate(p = phyper(Count_shared - 1, Count_U, Count_all - Count_U, Count_V, lower.tail = FALSE)) %>%
+	ungroup() %>%
+	mutate(q = p.adjust(p, "BH"))
+top_n(p_values, 10, desc(p))
+p_values %>% filter(U == "131-", V == "KU215903-")
+p_values %>% filter(p < 0.05) %>% nrow()
+p_values %>% filter(q < 0.05) %>% nrow()
+
+3043*16754/21
+phyper(21 - 1, 3043, 169948 - 3043, 16754, lower.tail = FALSE)
+phyper(21 - 1, 3043, 2427734 - 3043, 16754, lower.tail = FALSE)
+phyper(21 - 1, 3043, 1504171 - 3043, 16754, lower.tail = FALSE)
+```
+
+# Plot p-values
+```{r stripplot-p}
+ggplot(p_values) + aes(x = p) + geom_histogram(binwidth = 0.01, boundary = 0)
+ggplot(p_values) + aes(x = q) + geom_histogram(binwidth = 0.01, boundary = 0)
+ggplot(p_values) + aes(x = p, y = q) + geom_point()
+ggplot(p_values) + aes(x = p, y = q) + geom_point() + coord_cartesian(c(0, 0.05))
+```
+
+# Scatter plot FPR vs number of shared barcodes
+```{r plot-fpr-shared}
+plot <- ggplot(p_values) +
+	aes(x = Count_shared, y = p) +
+	geom_point(size = 1, alpha = 0.1)
+plot
+plot + coord_cartesian(xlim = c(1, 20), ylim = c(0, 0.5))
+ggplot(p_values) + aes(x = factor(Count_shared), y = p) + stat_boxplot() + coord_cartesian(xlim = c(1, 20))
+```
+
+# Estimate number of false positives and true positives
+```{r fpr}
+fpr <- list(0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1) %>% map_df(
+	function(x) p_values %>% filter(q < x) %>% summarise(
+		FPR = x,
+		max_q = max(q),
+		n = n(),
+		FP = ceiling(n() * max(q)),
+		TP = n - FP,
+		max_p = max(p),
+		min_shared = min(Count_shared)))
+fpr
+```
+# Plot FPR
+```{r plot-fpr}
+ggplot(fpr %>%
+		filter(FPR < 0.5) %>%
+		gather(key = TP_FP, value = Count, TP, FP) %>%
+		mutate(FPR = factor(FPR))) +
+	aes(x = FPR, y = Count, fill = TP_FP, group = TP_FP) +
+	geom_col() +
+	scale_y_continuous(breaks = function(x) seq(0, x[2], 100))
+```
+
+# Inspect hits
+```{r hits}
+q_threshold = 0.05
+hits <- p_values %>%
+	filter(q < q_threshold)
+```
+
+# Write data
+```{r write-data}
+p_values %>% write_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.p.tsv")
+```
