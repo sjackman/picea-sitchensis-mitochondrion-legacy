@@ -185,9 +185,26 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.l5k.gv: %.gv
 	gvpr -i 'N[l >= 5000]' -o $@ $<
 
+# Filter scaffolds by length using gvpr.
+%.l10k.gv: %.gv
+	gvpr -i 'N[l >= 10000]' -o $@ $<
+
 # Filter edges by number of barcodes using gvpr.
 %.m5.gv: %.gv
 	gvpr 'E[label >= 5]' -o $@ $<
+
+# Filter edges by their attribute n.
+%.n$n.gv: %.gv
+	gvpr 'E[n >= $n]' -o $@ $<
+
+# Filter edges by their attribute q.
+q=0.05
+%.q$q.gv: %.gv
+	gvpr 'E[q < $q]' -o $@ $<
+
+# Filter edges by their boolean attribute best.
+%.best.gv: %.gv
+	gvpr 'E[best == "T"]' $< | sed 's/best=T,//' >$@
 
 # Render a graph to PNG using dot.
 %.gv.dot.png: %.gv
@@ -476,10 +493,6 @@ r=0.220000
 %.arcs.links.tsv: %.arcs_original.gv $(abyss_scaffolds).fa
 	bin/arcs-makeTSVfile $< $@ $(abyss_scaffolds).fa
 
-# Filter the edges of a graph by their attribute n and label them.
-%.n$l.gv: %.gv
-	gvpr 'N{label = sprintf("%s\\n%u bp", name, l)} E{label = n} E[n >= $l]' $< >$@
-
 # Scaffold the assembly using the ARCS graph and LINKS.
 a=0.999999
 l=10
@@ -499,6 +512,18 @@ l=10
 # Combine the ARCS and LINKS graphs
 %.arcs.a$a_l$l.links.dist.path.gv: %.arcs.dist.n$l.gv %.arcs.a$a_l$l.links.path.gv
 	bin/graph-union-strict $^ >$@
+
+# Convert an ARCS dist.p.tsv file to GraphViz format
+%.dist.p.gv: %.dist.p.tsv
+	mlr --tsvlite \
+		then put 'begin { print "digraph g {" }' \
+		then put 'end { print "}" }' \
+		then put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . " q=" . $$q . "\" ]"' \
+		$< >$@
+
+# Add d and e records and remove the label record for abyss-scaffold.
+%.abyss.gv: %.gv
+	sed 's/label="[^"]*",$$/d=100, e=100,/' $< >$@
 
 # ABySS-Scaffold
 
