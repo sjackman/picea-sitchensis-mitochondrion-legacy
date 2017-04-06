@@ -1,0 +1,40 @@
+---
+title: Render an ARCS graph
+author: Shaun Jackman
+---
+
+```{r setup, message=FALSE}
+library(DiagrammeR)
+library(dplyr)
+library(magrittr)
+library(readr)
+```
+
+# Read the data
+```{r read-data}
+p_values <- read_tsv("psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.p.tsv")
+```
+
+# Create the graph
+```{r create-graph}
+q_threshold <- 0.05
+
+vertices <- p_values %>%
+	filter(q < q_threshold) %$%
+	tibble(label = unique(c(U, V))) %>%
+	arrange(label) %$%
+	create_node_df(n = nrow(.), label = label)
+
+edges <- p_values %>%
+	filter(q < q_threshold) %>%
+	left_join(rename(vertices, from = id), by = c("U" = "label")) %>%
+	left_join(rename(vertices, to = id), by = c("V" = "label")) %$%
+	create_edge_df(from = from, to = to, n = Shared_barcodes, q = q)
+
+graph <- create_graph(vertices, edges)
+```
+
+# Render the graph
+```{r render-graph}
+render_graph(graph)
+```
