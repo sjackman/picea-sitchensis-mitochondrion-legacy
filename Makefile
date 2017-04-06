@@ -465,10 +465,15 @@ e=5000
 r=0.220000
 %.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv: %.sortn.bam $(abyss_scaffolds).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
-		-f $(abyss_scaffolds).fa -a <(echo $<) -b $*.c$c_e$e_r$r.arcs -g $*.c$c_e$e_r$r.arcs.dist.gv
+		-f $(abyss_scaffolds).fa \
+		-b $*.c$c_e$e_r$r.arcs \
+		-g $*.c$c_e$e_r$r.arcs.dist.gv \
+		--tsv=$*.c$c_e$e_r$r.arcs.dist.tsv \
+		--barcode-counts=$<.barcode-counts.tsv \
+		$<
 
 # Convert the ARCS graph to LINKS TSV format.
-%.arcs.tsv: %.arcs_original.gv $(abyss_scaffolds).fa
+%.arcs.links.tsv: %.arcs_original.gv $(abyss_scaffolds).fa
 	bin/arcs-makeTSVfile $< $@ $(abyss_scaffolds).fa
 
 # Filter the edges of a graph by their attribute n and label them.
@@ -478,7 +483,7 @@ r=0.220000
 # Scaffold the assembly using the ARCS graph and LINKS.
 a=0.999999
 l=10
-%.arcs.a$a_l$l.links.scaffolds.fa %.arcs.a$a_l$l.links.assembly_correspondence.tsv: %.arcs.tsv $(abyss_scaffolds).fa
+%.arcs.a$a_l$l.links.scaffolds.fa %.arcs.a$a_l$l.links.assembly_correspondence.tsv: %.arcs.links.tsv $(abyss_scaffolds).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
 	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(abyss_scaffolds).fa -b $*.arcs.a$a_l$l.links
 
