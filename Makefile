@@ -514,12 +514,13 @@ l=10
 	bin/graph-union-strict $^ >$@
 
 # Convert an ARCS dist.p.tsv file to GraphViz format
-%.dist.p.gv: %.dist.p.tsv
-	mlr --tsvlite \
-		then put 'begin { print "digraph g {" }' \
-		then put 'end { print "}" }' \
-		then put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . " q=" . $$q . "\" ]"' \
-		$< >$@
+%.dist.p.gv: %.dist.p.tsv $(abyss_scaffolds).fa.fai
+	( echo 'digraph g {'; \
+		abyss-todot $(abyss_scaffolds).fa.fai \
+			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
+			| sed '1d;$$d'; \
+		mlr --tsvlite put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $<; \
+		echo '}' ) >$@
 
 # Add d and e records and remove the label record for abyss-scaffold.
 %.abyss.gv: %.gv
