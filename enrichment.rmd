@@ -17,7 +17,7 @@ library(tidyr)
 
 # Read data
 ```{r read-data}
-counts <- read_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.tsv") %>%
+counts <- read_tsv("psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.dist.tsv") %>%
 	mutate(cp = grepl("KU", U) | grepl("KU", V))
 ```
 
@@ -127,5 +127,7 @@ ggplot(cp_pareto) +
 
 # Write data
 ```{r write-data}
-p_values %>% write_tsv("tmp/psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.p.tsv")
+p_values %>%
+	mutate(Best_orientation = ifelse(Best_orientation, "T", "F")) %>%
+	write_tsv("psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.dist.p.tsv")
 ```
