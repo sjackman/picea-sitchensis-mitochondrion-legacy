@@ -1,0 +1,34 @@
+---
+title: Explore paired-end fragment size
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file with no header of paired-end fragment sizes"
+    value: "psitchensiscpmt_3.psitchensis.bx.sortn.l100.hist"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(ggplot2)
+library(readr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv <- params$input_tsv
+```
+
+# Read data
+```{r read-data}
+fragment_sizes <- read_tsv(input_tsv, col_names = c("Size", "Count"))
+```
+
+# Histogram of fragment sizes
+```{r fragment-size-histogram}
+ggplot(fragment_sizes) +
+	aes(x = Size, y = Count) +
+	geom_point() +
+	coord_cartesian(xlim = c(0, 1000))
+```
