@@ -90,6 +90,21 @@ ggplot(p_values) +
 	coord_cartesian(ylim = c(0, 200))
 ```
 
+# Histogram of number of barcodes per scaffold end
+```{r plot-barcodes-per-scaffold-end}
+q_threshold <- 0.05
+
+scaffold_ends <- bind_rows(
+		p_values %>% filter(q < q_threshold) %>% distinct(U, U_barcodes),
+		p_values %>% filter(q < q_threshold) %>% distinct(V, V_barcodes) %>% rename(U = V, U_barcodes = V_barcodes)) %>%
+	distinct(U, U_barcodes)
+
+ggplot(scaffold_ends) +
+	aes(x = U_barcodes) +
+	geom_histogram(binwidth = 50, boundary = 0) +
+	coord_cartesian(xlim = c(0, 1000))
+```
+
 # Inspect plastid
 ```{r plastid}
 p_values %>% filter(cp) %>% nrow()
