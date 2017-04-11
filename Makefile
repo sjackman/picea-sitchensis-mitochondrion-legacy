@@ -189,6 +189,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.l10k.gv: %.gv
 	gvpr -i 'N[l >= 10000]' -o $@ $<
 
+# Filter scaffolds by length using gvpr.
+%.l20k.gv: %.gv
+	gvpr -i 'N[l >= 20000]' -o $@ $<
+
 # Filter edges by number of barcodes using gvpr.
 %.m5.gv: %.gv
 	gvpr 'E[label >= 5]' -o $@ $<
@@ -341,11 +345,11 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 # Create a TSV file of molecule extents.
 %.bx.molecule.tsv: %.bx.tsv
 	mlr --tsvlite \
-		stats1 -g BX,MI,Rname -a count,min,p50,max -f Pos,Mapq,AS \
+		then stats1 -g BX,MI,Rname -a count,min,p50,max -f Pos,Mapq,AS \
 		then rename Pos_min,Start,Pos_max,End,Mapq_p50,Mapq_median,AS_p50,AS_median,Pos_count,Reads \
 		then put '$$Size = $$End - $$Start' \
 		then cut -o -f Rname,Start,End,Size,BX,MI,Reads,Mapq_median,AS_median \
-		then filter '$$MI != "NA" && $$Reads >= 4' \
+		then filter '$$Reads >= 4' \
 		$< >$@
 
 # Create a BED file of molecule extents.
@@ -378,8 +382,8 @@ psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.ts
 # bedtools
 
 # Convert BED to BAM.
-%.bed.bam: %.bed psitchensiscpmt_2.fa.fai
-	bedtools bedtobam -i $< -g psitchensiscpmt_2.fa.fai >$@
+%.bed.bam: %.bed $(abyss_scaffolds).fa.fai
+	awk '$$2 != $$3' $< | bedtools bedtobam -i - -g $(abyss_scaffolds).fa.fai >$@
 
 # htsbox
 
@@ -523,19 +527,57 @@ l=10
 		echo '}' ) >$@
 
 # Add d and e records and remove the label record for abyss-scaffold.
-%.abyss.gv: %.gv
-	sed 's/label="[^"]*",$$/d=100, e=100,/' $< >$@
+# Remove the attribute C=0.
+%.abyss.dist.gv: %.gv
+	sed 's/label="[^"]*",$$/d=100, e=100,/;s/C=0,//' $< >$@
+
+# ABySS DistanceEst
+de_l=100
+de_s=1000
+de_n=5
+
+%.l$(de_l).bam %.l$(de_l).hist: %.bam $(abyss_scaffolds).fa
+	samtools view -h -F0x900 $< | abyss-fixmate -v -l$(de_l) -h $*.l$(de_l).hist | samtools sort -@$t -Obam -o $*.l$(de_l).bam
+
+%.l$(de_l).n$(de_n).dist.gv: %.l$(de_l).bam %.l$(de_l).hist
+	samtools view -h $< | DistanceEst -v --dot -j$t -k$k -l$(de_l) -s$(de_s) -n$(de_n) --maxd=1000 -o $@ $*.l$(de_l).hist
+
+# Label the nodes and edges of an ABySS GraphViz file.
+%.label.gv: %.gv $(abyss_scaffolds).fa.fai
+	( echo 'digraph g {'; \
+		abyss-todot $(abyss_scaffolds).fa.fai \
+			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
+			| sed '1d;$$d'; \
+		gvpr -c 'E{label = sprintf("d=%d\\nn=%u", d, n)}' $< | sed '1d;$$d'; \
+		echo '}' ) | gvpr 'E[1]' >$@
+
+# Combine the paired-end and 10x distance estimates.
+%.l$(de_l).n$(de_n).arcs+pe.dist.gv: $(abyss_scaffolds).fa.fai $(abyss_scaffolds).psitchensis.bx.sortn.l$(de_l).n$(de_n).dist.gv %.gv
+	/home/sjackman/src/abyss/_macos/Graph/abyss-todot -v -e --add-complements $^ >$@
 
 # ABySS-Scaffold
+
+# Scaffold using different values of s.
+%.dist.gv.abyss-scaffold.n$n.s.txt: $(abyss_scaffolds).fa.fai %.dist.gv
+	for s in {1..50}000; do \
+		abyss-scaffold -k$k -s$$s -n$n -G$G $^ >/dev/null |& tail -n2; \
+	done >$@
+
+# Scaffold using different values of n.
+%.dist.gv.abyss-scaffold.txt: $(abyss_scaffolds).fa.fai %.dist.gv
+	for n in {1..20}; do \
+		echo n=$$n; \
+		abyss-scaffold -k$k -s$s -n$$n -G$G $^ >/dev/null |& tail -n3; \
+	done >$@
 
 # Scaffold the assembly using the ARCS graph and abyss-scaffold.
 s=500-50000
 n=10
-%.arcs.n$n.abyss-scaffold.path: $(abyss_scaffolds).fa.fai %.arcs.dist.gv
-	abyss-scaffold -v -k$k -s$s -n$n -o $@ $^
+%.dist.gv.n$n.abyss-scaffold.path: $(abyss_scaffolds).fa.fai %.dist.gv
+	abyss-scaffold -v -k$k -s$s -n$n -G$G -o $@ $^
 
 # Generate the FASTA file of the scaffolds.
-%.arcs.n$n.abyss-scaffold.fa: $(abyss_scaffolds).fa $(abyss_scaffolds).fa.fai %.arcs.n$n.abyss-scaffold.path
+%.n$n.abyss-scaffold.fa: $(abyss_scaffolds).fa $(abyss_scaffolds).fa.fai %.n$n.abyss-scaffold.path
 	MergeContigs -v -k$k -o $@ $^
 
 # Convert the path file to GraphViz format.
