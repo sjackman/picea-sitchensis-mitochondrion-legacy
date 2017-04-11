@@ -472,7 +472,7 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 # ARCS
 
 # Add the barcode to the read ID, and skip reads without barcodes.
-%.bx.fq.gz: psitchensis.longranger.basic.fq.gz
+%.bx.fq.gz: %.longranger.basic.fq.gz
 	gunzip -c $< | gawk ' \
 		{ bx = "NA" } \
 		match($$0, "BX:Z:([ACGT]*)-1", x) { bx = x[1] } \
