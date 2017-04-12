@@ -175,6 +175,27 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 		echo "}"; \
 	) >$@
 
+# Count the number of reads per barcode.
+%.fq.gz.count.tsv: %.fq.gz
+	gunzip -c $< | sed -n 's/.*BX:Z:/BX=/p' \
+	| mlr --otsvlite count-distinct -f BX then rename count,Reads then sort -f BX >$@
+
+# Create a SAM header of barcodes.
+%.count.tsv.sam: %.count.tsv
+	mlr --tsvlite put -q 'print "@SQ\tSN:" . $$BX . "\tLN:1"' $< >$@
+
+# Create an unaligned BAM file indexed by barcode.
+# The flags assume that the reads are interleaved with no missing reads.
+%.longranger.basic.bam: %.longranger.basic.fq.gz %.longranger.basic.fq.gz.count.tsv.sam
+	( cat $*.longranger.basic.fq.gz.count.tsv.sam; \
+	gunzip -c $< | gawk ' \
+		{ bx = "NA"; rname = "*" } \
+		match($$0, "BX:Z:([ACGT]*-[0-9])", x) { bx = x[1]; rname = bx } \
+		{ id = substr($$1, 2); getline; seq = $$0; getline; getline; qual = $$0 } \
+		{ which = !which; flags = which ? 77 : 141 } \
+		{ printf "%s\t%u\t%s\t1\t0\t*\t*\t0\t0\t%s\t%s\tBX:Z:%s\n", id, flags, rname, seq, qual, bx }' \
+	) | samtools sort -@$t -T/var/tmp/$(USER)/$@ -O bam -o $@
+
 # GraphViz
 
 # Extract the largest connected component from a graph using ccomps.
@@ -213,6 +234,10 @@ q=0.05
 # Render a graph to PNG using dot.
 %.gv.dot.png: %.gv
 	dot -Tpng -o $@ $<
+
+# Render a graph to PDF using dot.
+%.gv.dot.pdf: %.gv
+	dot -Tpdf -o $@ $<
 
 # Render a graph to PNG using dot and gvpack.
 %.gv.gvpack.dot.png: %.gv
