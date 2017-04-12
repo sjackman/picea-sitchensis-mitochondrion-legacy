@@ -3,7 +3,9 @@
 
 # Target genome, Picea sitchensis mitochondrion
 name=psitchensis
-draft=psitchensismt
+
+# Assembly of Picea sitchensis organelles
+draft=psitchensiscpmt_3
 
 # Reference genome
 ref=organelles
@@ -121,8 +123,8 @@ $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 	bwa mem -t$t -pC $(ref).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
 
 # Align paired-end reads to the draft genome and do not sort.
-$(abyss_scaffolds).%.sortn.bam: %.fq.gz $(abyss_scaffolds).fa.bwt
-	bwa mem -t$t -pC $(abyss_scaffolds).fa $< | samtools view -@$t -h -F4 -o $@
+$(draft).%.sortn.bam: %.fq.gz $(draft).fa.bwt
+	bwa mem -t$t -pC $(draft).fa $< | samtools view -@$t -h -F4 -o $@
 
 # Sort a query-name-sorted BAM file by target.
 %.bam: %.sortn.bam
@@ -407,8 +409,8 @@ psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.ts
 # bedtools
 
 # Convert BED to BAM.
-%.bed.bam: %.bed $(abyss_scaffolds).fa.fai
-	awk '$$2 != $$3' $< | bedtools bedtobam -i - -g $(abyss_scaffolds).fa.fai >$@
+%.bed.bam: %.bed $(draft).fa.fai
+	awk '$$2 != $$3' $< | bedtools bedtobam -i - -g $(draft).fa.fai >$@
 
 # htsbox
 
@@ -452,7 +454,6 @@ abyssbin201=/gsc/btl/linuxbrew/Cellar/abyss/2.0.1-k96/bin
 k=75
 kc=4
 B=100G
-abyss_scaffolds=abyss/2.0.1/k$k/kc$(kc)/psitchensis-scaffolds
 
 # The total genome size of P. sitchensis plastid and P. glauca mitochondrion
 GwithN=6118703
@@ -509,9 +510,9 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 c=1
 e=5000
 r=0.220000
-%.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv: %.sortn.bam $(abyss_scaffolds).fa
+%.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv: %.sortn.bam $(draft).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
-		-f $(abyss_scaffolds).fa \
+		-f $(draft).fa \
 		-b $*.c$c_e$e_r$r.arcs \
 		-g $*.c$c_e$e_r$r.arcs.dist.gv \
 		--tsv=$*.c$c_e$e_r$r.arcs.dist.tsv \
@@ -519,15 +520,15 @@ r=0.220000
 		$<
 
 # Convert the ARCS graph to LINKS TSV format.
-%.arcs.links.tsv: %.arcs_original.gv $(abyss_scaffolds).fa
-	bin/arcs-makeTSVfile $< $@ $(abyss_scaffolds).fa
+%.arcs.links.tsv: %.arcs_original.gv $(draft).fa
+	bin/arcs-makeTSVfile $< $@ $(draft).fa
 
 # Scaffold the assembly using the ARCS graph and LINKS.
 a=0.999999
 l=10
-%.arcs.a$a_l$l.links.scaffolds.fa %.arcs.a$a_l$l.links.assembly_correspondence.tsv: %.arcs.links.tsv $(abyss_scaffolds).fa
+%.arcs.a$a_l$l.links.scaffolds.fa %.arcs.a$a_l$l.links.assembly_correspondence.tsv: %.arcs.links.tsv $(draft).fa
 	cp $< $*.arcs.a$a_l$l.links.tigpair_checkpoint.tsv
-	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(abyss_scaffolds).fa -b $*.arcs.a$a_l$l.links
+	LINKS -k20 -l$l -t2 -a$a -x1 -s /dev/null -f $(draft).fa -b $*.arcs.a$a_l$l.links
 
 # Rename the scaffolds.
 %/arcs/psitchensis-scaffolds.fa: %/psitchensis-scaffolds.psitchensis.bx.atleast4.c$c_e$e_r$r.arcs.a$a_l$l.links.scaffolds.fa
@@ -543,9 +544,9 @@ l=10
 	bin/graph-union-strict $^ >$@
 
 # Convert an ARCS dist.p.tsv file to GraphViz format
-%.dist.p.gv: %.dist.p.tsv $(abyss_scaffolds).fa.fai
+%.dist.p.gv: %.dist.p.tsv $(draft).fa.fai
 	( echo 'digraph g {'; \
-		abyss-todot $(abyss_scaffolds).fa.fai \
+		abyss-todot $(draft).fa.fai \
 			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
 			| sed '1d;$$d'; \
 		mlr --tsvlite put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $<; \
@@ -561,35 +562,35 @@ de_l=100
 de_s=1000
 de_n=5
 
-%.l$(de_l).bam %.l$(de_l).hist: %.bam $(abyss_scaffolds).fa
+%.l$(de_l).bam %.l$(de_l).hist: %.bam $(draft).fa
 	samtools view -h -F0x900 $< | abyss-fixmate -v -l$(de_l) -h $*.l$(de_l).hist | samtools sort -@$t -Obam -o $*.l$(de_l).bam
 
 %.l$(de_l).n$(de_n).dist.gv: %.l$(de_l).bam %.l$(de_l).hist
 	samtools view -h $< | DistanceEst -v --dot -j$t -k$k -l$(de_l) -s$(de_s) -n$(de_n) --maxd=1000 -o $@ $*.l$(de_l).hist
 
 # Label the nodes and edges of an ABySS GraphViz file.
-%.label.gv: %.gv $(abyss_scaffolds).fa.fai
+%.label.gv: %.gv $(draft).fa.fai
 	( echo 'digraph g {'; \
-		abyss-todot $(abyss_scaffolds).fa.fai \
+		abyss-todot $(draft).fa.fai \
 			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
 			| sed '1d;$$d'; \
 		gvpr -c 'E{label = sprintf("d=%d\\nn=%u", d, n)}' $< | sed '1d;$$d'; \
 		echo '}' ) | gvpr 'E[1]' >$@
 
 # Combine the paired-end and 10x distance estimates.
-%.l$(de_l).n$(de_n).arcs+pe.dist.gv: $(abyss_scaffolds).fa.fai $(abyss_scaffolds).psitchensis.bx.sortn.l$(de_l).n$(de_n).dist.gv %.gv
+%.l$(de_l).n$(de_n).arcs+pe.dist.gv: $(draft).fa.fai $(draft).psitchensis.bx.sortn.l$(de_l).n$(de_n).dist.gv %.gv
 	/home/sjackman/src/abyss/_macos/Graph/abyss-todot -v -e --add-complements $^ >$@
 
 # ABySS-Scaffold
 
 # Scaffold using different values of s.
-%.dist.gv.abyss-scaffold.n$n.s.txt: $(abyss_scaffolds).fa.fai %.dist.gv
+%.dist.gv.abyss-scaffold.n$n.s.txt: $(draft).fa.fai %.dist.gv
 	for s in {1..50}000; do \
 		abyss-scaffold -k$k -s$$s -n$n -G$G $^ >/dev/null |& tail -n2; \
 	done >$@
 
 # Scaffold using different values of n.
-%.dist.gv.abyss-scaffold.txt: $(abyss_scaffolds).fa.fai %.dist.gv
+%.dist.gv.abyss-scaffold.txt: $(draft).fa.fai %.dist.gv
 	for n in {1..20}; do \
 		echo n=$$n; \
 		abyss-scaffold -k$k -s$s -n$$n -G$G $^ >/dev/null |& tail -n3; \
@@ -598,11 +599,11 @@ de_n=5
 # Scaffold the assembly using the ARCS graph and abyss-scaffold.
 s=500-50000
 n=10
-%.dist.gv.n$n.abyss-scaffold.path: $(abyss_scaffolds).fa.fai %.dist.gv
+%.dist.gv.n$n.abyss-scaffold.path: $(draft).fa.fai %.dist.gv
 	abyss-scaffold -v -k$k -s$s -n$n -G$G -o $@ $^
 
 # Generate the FASTA file of the scaffolds.
-%.n$n.abyss-scaffold.fa: $(abyss_scaffolds).fa $(abyss_scaffolds).fa.fai %.n$n.abyss-scaffold.path
+%.n$n.abyss-scaffold.fa: $(draft).fa $(draft).fa.fai %.n$n.abyss-scaffold.path
 	MergeContigs -v -k$k -o $@ $^
 
 # Convert the path file to GraphViz format.
