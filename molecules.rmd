@@ -223,6 +223,32 @@ misassemblies <- molecules_starts %>%
 misassemblies %>% arrange(as.integer(Rname))
 ```
 
+# Determine the threshold of molecule depth
+```{r molecule-depth-threshold}
+scaffold_sizes <- molecules_depth_good %>% group_by(Rname) %>% summarize(Size = max(Pos))
+
+trim_ends <- 5000
+molecules_depth_good_omit_ends <- molecules_depth_good %>%
+	left_join(scaffold_sizes, by = "Rname") %>%
+	filter(trim_ends <= Pos, Pos < Size - trim_ends)
+
+molecules_depth_good_omit_ends %>%
+	summarize(
+		Median = median(Depth), IQR = IQR(Depth),
+		Mean = mean(Depth), SD = sd(Depth))
+
+boxplot.stats(molecules_depth_good_omit_ends$Depth, do.out = FALSE)$stats
+
+molecules_depth_good_omit_ends %$% floor(median(Depth) - 1.5 * IQR(Depth))
+```
+
+# Histogram of molecule depth
+```{r molecule-depth-histogram}
+ggplot(molecules_depth_good_omit_ends) +
+	aes(x = Depth) +
+	geom_histogram()
+```
+
 # Plot misassemblies, depth of molecule coverage and molecule starts
 ```{r misassemblies-depth, fig.width=7, fig.height=7}
 ggplot(molecules_starts) +
