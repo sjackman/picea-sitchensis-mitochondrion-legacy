@@ -650,6 +650,109 @@ n=10
 %.nocp.fa: %.fa %.fa.nocp
 	seqtk subseq $< $<.nocp >$@
 
+# Create signatures of scaffolds ends
+
+# Identify blunt vertices.
+%.gv.blunt.name: %.gv
+	gvpr 'N[outdegree == 0] { print(name) }' $< | sort >$@
+
+# Create a BED file of the ends of blunt scaffolds.
+%.blunt.bed: %.blunt.name
+	mlr --nidx --fs tab \
+		then put '$$Orientation = substr($$1, -1, -1); $$1 = substr($$1, 0, -2)' \
+		then rename 2,Orientation \
+		then join -u -f $(draft).fa.fai -j 1 \
+		then rename 1,Name,2,Size \
+		then cut -f Name,Orientation,Size \
+		then put 'if ($$Orientation == "-") { $$Start = 1; $$End = $e } else { $$Start = $$Size - $e; $$End = $$Size }' \
+		then cut -o -f Name,Start,End $< >$@
+
+# Extact the alignments from the ends of blunt scaffolds.
+%.blunt.as100.bam: %.blunt.bed $(draft).$(name).bx.as100.bam
+	samtools view -q1 -F0x904 -L $< -Obam -o $@ $(draft).$(name).bx.as100.bam
+
+# Extract the barcodes from a BAM file and store it in a TSV file.
+read_length = 150
+%.bam.barcodes.tsv: %.bam
+	samtools view $< | gsed -r 's/\t(..):.:([^\t]*)/\t\1=\2/g' \
+	| mlr --idkvp --ifs tab --otsvlite cat \
+		then rename 3,Rname,4,Pos \
+		then cut -f Rname,Pos,AS,BX \
+		then put '$$Name = $$Rname . ($$Pos < $e + $(read_length) ? "-" : "+")' \
+		then count-distinct -o Reads -f Name,BX >$@
+
+# Count the number of barcodes per scaffold end.
+%.bam.barcodes.scaffend.tsv: %.bam.barcodes.tsv
+	mlr --tsvlite \
+		then filter '$$Reads >= 4' \
+		then stats1 -a count,sum -g Name -f Reads \
+		then rename Reads_count,Barcodes \
+		then put '$$Reads_per_barcode = $$Reads_sum / $$Barcodes' \
+		$< >$@
+
+# Write the list of barcodes one file per scaffold end.
+%.bam.barcodes/all.tsv: %.bam.barcodes.tsv
+	mkdir -p $(@D)
+	mlr --itsvlite --onidx \
+		then filter '$$Reads >= 4' \
+		then put 'print >"$(@D)/" . $$Name . ".bx.bed", $$BX . "\t0\t1" ' $< >$@
+
+# Write the list of barcodes one file per scaffold end.
+%.bam.barcodes.scaffend/bed.files: %.bam.barcodes.tsv %.bam.barcodes.scaffend.tsv
+	mkdir -p $(@D)
+	mlr --itsvlite --onidx \
+		then join -u -j Name -f $*.bam.barcodes.scaffend.tsv \
+		then filter '$$Barcodes < 500 && $$Reads >= 4' \
+		then put 'print >"$(@D)/" . $$Name . ".bx.bed", $$BX . "\t0\t1" ' \
+		then uniq -f Name \
+		then put '$$File = "$(@D)/" . $$Name . ".bx.bed"' \
+		then cut -f File \
+		$< >$@
+
+# Convert a list of BED files to FASTQ.gz files.
+%/fq.gz.files: %/bed.files
+	sed 's/.bed$$/.fq.gz/' $< >$@
+	make `<$@`
+
+# Extract the reads of a single barcode to a FASTQ file.
+$(name).longranger.basic.bx.%.fq.gz: $(name).longranger.basic.bam
+	samtools view -@$t -h $< $* | samtools fastq -@$t - | sed '/^@.*\/[12]$$/s/$$/ BX:Z:$*/' | $(gzip) >$@
+
+# Extract the reads of a set of barcodes to a FASTQ file.
+%.bx.fq.gz: %.bx.bed $(name).longranger.basic.bam
+	samtools view -@$t -h -L $< $(name).longranger.basic.bam | gsed 's/\tBX:Z:/\tBC:Z:/' | samtools fastq -@$t -t - | gsed 's/BC:Z:/BX:Z:/' | $(gzip) >$@
+
+# Mash
+
+# Construct a sketch of a FASTQ.gz file.
+%.fq.gz.msh: %.fq.gz
+	mash sketch -p $t -k 32 -m 2 $<
+
+# Construct a sketch of a list of FASTQ.gz files.
+%.fq.gz.msh: %/fq.gz.files
+	mash sketch -p $t -k 32 -m 2 -s 10000 -l $< -o $*.fq.gz
+
+# Compare all pairs of sketches.
+%.msh.dist.tsv: %.msh
+	mash dist $< $< >$@
+
+# Convert a Mash distance TSV file to a GraphViz undirected graph
+%.msh.dist.tsv.u.gv: %.msh.dist.tsv
+	gsed -r 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t(0|1|10000)$$/d' $< \
+		| awk '$$5 >= 100' \
+		| awk 'BEGIN { print "strict graph g {" } { print "\"" $$1 "\" -- \"" $$2 "\" [label=" $$5 "]" } END { print "}" }' \
+		>$@
+
+# Convert a Mash distance TSV file to a GraphViz file
+%.msh.dist.tsv.gv: %.msh.dist.tsv
+	gsed -r -e 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t(0|1|10000)$$/d' \
+			-e '/^[^\t]*-\t/s/-\t/=\t/' \
+			-e '/^[^\t]*\+\t/s/\+\t/-\t/' \
+			-e '/^[^\t]*=\t/s/=\t/+\t/' $< \
+		| awk '$$5 >= 100' \
+		| awk 'BEGIN { print "strict digraph g {" } { print "\"" $$1 "\" -> \"" $$2 "\" [label=" $$5 "]" } END { print "}" }' \
+		>$@
+
 # Miniasm
 
 # Align sequences using minimap
