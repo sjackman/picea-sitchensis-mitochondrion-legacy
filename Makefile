@@ -579,7 +579,7 @@ de_n=5
 
 # Combine the paired-end and 10x distance estimates.
 %.l$(de_l).n$(de_n).arcs+pe.dist.gv: $(draft).fa.fai $(draft).psitchensis.bx.sortn.l$(de_l).n$(de_n).dist.gv %.gv
-	/home/sjackman/src/abyss/_macos/Graph/abyss-todot -v -e --add-complements $^ >$@
+	abyss-todot -v -e $^ >$@
 
 # ABySS-Scaffold
 
