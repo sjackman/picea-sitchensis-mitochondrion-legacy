@@ -1,0 +1,90 @@
+---
+title: Analyze the distance estimates of MASH
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of MASH distances with columns U, V, Distance, p, Shared"
+    value: "mash.dist.tsv"
+    input: text
+  output_tsv:
+    label: "Output tidy TSV file of MASH distances with added columns Sketch_size, Jaccard"
+    value: "mash.dist.tidy.tsv"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(readr)
+library(stringr)
+library(tibble)
+library(tidyr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv_filename <- params$input_tsv
+output_tsv_filename <- params$output_tsv
+```
+
+# Read data
+```{r read-data}
+mash_orig <- read_tsv(input_tsv_filename,
+	col_names = c("U", "V", "Distance", "p", "Shared"),
+	col_types = cols(
+	  U = col_character(),
+	  V = col_character(),
+	  Distance = col_double(),
+	  p = col_double(),
+	  Shared = col_character()
+	))
+
+mash <- mash_orig %>%
+	separate(Shared, c("Shared", "Sketch_size")) %>%
+	mutate(
+		U = basename(U) %>% str_replace(".bx.fq.gz$", ""),
+		V = basename(V) %>% str_replace(".bx.fq.gz$", ""),
+		Shared = parse_integer(Shared),
+		Sketch_size = parse_integer(Sketch_size),
+		Jaccard = Shared / Sketch_size) %>%
+	filter(0.001 < Jaccard, Jaccard < 1)
+```
+
+# Histogram of the Jaccard index
+```{r jaccard-histogram}
+ggplot(mash) +
+	aes(x = Jaccard) +
+	geom_histogram(binwidth = 0.001, boundary = 0)
+```
+
+# Hierarchical clustering using MASH distances
+```{r hierarchical-clustering}
+mash_matrix <- mash %>%
+	select(U, V, Distance) %>%
+	spread(V, Distance) %>%
+	# Setting row names on a tibble is deprecated.
+	as.data.frame() %>%
+	remove_rownames() %>%
+	column_to_rownames("U")
+
+mash_hclust <- mash_matrix %>% as.dist() %>% hclust()
+plot(mash_hclust)
+```
+
+# Heatmap of Jaccard indices
+```{r jaccard-heatmap}
+mash_levels <- mash_hclust %$% labels[order]
+mash_clustered <- mash %>% mutate(U = parse_factor(U, mash_levels), V = parse_factor(V, mash_levels))
+
+ggplot(mash_clustered) +
+	aes(x = U, y = V, fill = Jaccard) +
+	geom_tile()
+```
+
+# Write data
+```{r write-data}
+mash %>% write_tsv(output_tsv_filename)
+```
