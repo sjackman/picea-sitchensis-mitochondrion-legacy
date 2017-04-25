@@ -4,20 +4,34 @@ author: Shaun Jackman
 output:
   html_document:
     keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of ARCS distance estimates with columns U, V, Best_orientation, Shared_barcodes, U_barcodes, V_barcodes, All_barcodes"
+    value: "enrichement.arcs.dist.tsv"
+    input: text
+  output_tsv:
+    label: "Output TSV file of ARCS distance estimates with added columns p, q"
+    value: "enrichement.arcs.dist.p.tsv"
+    input: text
 ---
 
 ```{r setup}
 library(dplyr)
 library(ggplot2)
+library(knitr)
 library(purrr)
 library(readr)
 library(rPref)
 library(tidyr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv_filename <- params$input_tsv
+output_tsv_filename <- params$output_tsv
 ```
 
 # Read data
 ```{r read-data}
-counts <- read_tsv("psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.dist.tsv") %>%
+counts <- read_tsv(input_tsv_filename) %>%
 	mutate(cp = grepl("KU", U) | grepl("KU", V))
 ```
 
@@ -129,7 +143,7 @@ ggplot(p_values) +
 ```
 
 # Pareto frontier of plastid FPR and shared barcodes
-```{r plastid-pareto}
+```{r plastid-pareto, eval=FALSE}
 cp_pareto <- p_values %>% filter(cp) %>%
 	psel(low(q) * high(Shared_barcodes), top = nrow(p_values)) %>%
 	rename(Pareto = .level)
@@ -144,5 +158,5 @@ ggplot(cp_pareto) +
 ```{r write-data}
 p_values %>%
 	mutate(Best_orientation = ifelse(Best_orientation, "T", "F")) %>%
-	write_tsv("psitchensiscpmt_3.psitchensis.bx.c1_e5000_r0.220000.arcs.dist.p.tsv")
+	write_tsv(output_tsv_filename)
 ```
