@@ -598,7 +598,7 @@ de_n=5
 
 # Scaffold the assembly using the ARCS graph and abyss-scaffold.
 s=500-50000
-n=10
+n=7
 %.dist.gv.n$n.abyss-scaffold.path: $(draft).fa.fai %.dist.gv
 	abyss-scaffold -v -k$k -s$s -n$n -G$G -o $@ $^
 
