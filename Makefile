@@ -510,7 +510,7 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 c=1
 e=5000
 r=0.220000
-%.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv: %.sortn.bam $(draft).fa
+%.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv %.c$c_e$e_r$r.arcs.dist.tsv: %.sortn.bam $(draft).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
 		-f $(draft).fa \
 		-b $*.c$c_e$e_r$r.arcs \
@@ -542,6 +542,10 @@ l=10
 # Combine the ARCS and LINKS graphs
 %.arcs.a$a_l$l.links.dist.path.gv: %.arcs.dist.n$l.gv %.arcs.a$a_l$l.links.path.gv
 	bin/graph-union-strict $^ >$@
+
+# Add p-values to an ARCS arcs.dist.tsv file
+%.arcs.dist.p.tsv: %.arcs.dist.tsv enrichment.rmd
+	Rscript -e 'rmarkdown::render("enrichment.rmd", "html_document", "$*.arcs.dist.html", params = list(input_tsv="$<", output_tsv="$@"))'
 
 # Convert an ARCS dist.p.tsv file to GraphViz format
 %.dist.p.gv: %.dist.p.tsv $(draft).fa.fai
