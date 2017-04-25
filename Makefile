@@ -5,7 +5,7 @@
 name=psitchensis
 
 # Assembly of Picea sitchensis organelles
-draft=psitchensiscpmt_3
+draft=psitchensiscpmt_4
 
 # Reference genome
 ref=organelles
@@ -602,7 +602,7 @@ de_n=5
 
 # Scaffold the assembly using the ARCS graph and abyss-scaffold.
 s=500-50000
-n=7
+n=5
 %.dist.gv.n$n.abyss-scaffold.path: $(draft).fa.fai %.dist.gv
 	abyss-scaffold -v -k$k -s$s -n$n -G$G -o $@ $^
 
