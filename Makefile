@@ -668,12 +668,16 @@ n=5
 
 # Create signatures of scaffolds ends
 
+# Extract vertex names
+%.gv.ends.name: %.gv
+	gvpr 'N { print(name) }' $< | sort >$@
+
 # Identify blunt vertices.
 %.gv.blunt.name: %.gv
 	gvpr 'N[outdegree == 0] { print(name) }' $< | sort >$@
 
 # Create a BED file of the ends of blunt scaffolds.
-%.blunt.bed: %.blunt.name
+%.bed: %.name
 	mlr --nidx --fs tab \
 		then put '$$Orientation = substr($$1, -1, -1); $$1 = substr($$1, 0, -2)' \
 		then rename 2,Orientation \
@@ -682,6 +686,10 @@ n=5
 		then cut -f Name,Orientation,Size \
 		then put 'if ($$Orientation == "-") { $$Start = 1; $$End = $e } else { $$Start = $$Size - $e; $$End = $$Size }' \
 		then cut -o -f Name,Start,End $< >$@
+
+# Extact the alignments from the ends of scaffolds.
+%.bed.bx.as100.bam: %.bed $(draft).$(name).bx.as100.bam
+	samtools view -q1 -F0x904 -L $< -Obam -o $@ $(draft).$(name).bx.as100.bam
 
 # Extact the alignments from the ends of blunt scaffolds.
 %.blunt.as100.bam: %.blunt.bed $(draft).$(name).bx.as100.bam
