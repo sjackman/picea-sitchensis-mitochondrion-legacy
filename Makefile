@@ -762,14 +762,14 @@ $(name).longranger.basic.bx.%.fq.gz: $(name).longranger.basic.bam
 
 # Convert a Mash distance TSV file to a GraphViz undirected graph
 %.msh.dist.tsv.u.gv: %.msh.dist.tsv
-	gsed -r 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t(0|1|10000)$$/d' $< \
+	gsed -r 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t10000$$/d' $< \
 		| awk '$$5 >= 100' \
 		| awk 'BEGIN { print "strict graph g {" } { print "\"" $$1 "\" -- \"" $$2 "\" [label=" $$5 "]" } END { print "}" }' \
 		>$@
 
 # Convert a Mash distance TSV file to a GraphViz file
 %.msh.dist.tsv.gv: %.msh.dist.tsv
-	gsed -r -e 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t(0|1|10000)$$/d' \
+	gsed -r -e 's~[^\t/]*/~~;s~[^\t/]*/~~;s/\.bx\.fq\.gz//g;s~/10000$$~~;/\t10000$$/d' \
 			-e '/^[^\t]*-\t/s/-\t/=\t/' \
 			-e '/^[^\t]*\+\t/s/\+\t/-\t/' \
 			-e '/^[^\t]*=\t/s/=\t/+\t/' $< \
