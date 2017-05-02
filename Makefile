@@ -290,12 +290,13 @@ q=0.05
 # Extract the alignment score, barcode and molecule identifier.
 %.bam.bx.tsv: %.bam
 	samtools view -F4 $< | gawk -F'\t' ' \
-		BEGIN { print "Flags\tRname\tPos\tMapq\tAS\tBX\tMI" } \
-		{ as = bx = mi = "NA" } \
+		BEGIN { print "Flags\tRname\tPos\tMapq\tAS\tNM\tBX\tMI" } \
+		{ as = bx = mi = nm = "NA" } \
 		match($$0, "AS:.:([^\t]*)", x) { as = x[1] } \
+		match($$0, "NM:.:([^\t]*)", x) { nm = x[1] } \
 		match($$0, "BX:Z:([^\t]*)", x) { bx = x[1] } \
 		match($$0, "MI:i:([^\t]*)", x) { mi = x[1] } \
-		{ print $$2 "\t" $$3 "\t" $$4 "\t" $$5 "\t" as "\t" bx "\t" mi }' >$@
+		{ print $$2 "\t" $$3 "\t" $$4 "\t" $$5 "\t" as "\t" nm "\t" bx "\t" mi }' >$@
 
 # Count the number of reads per barcode.
 %.bam.bx.count.tsv: %.bam.bx.tsv
@@ -353,6 +354,17 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 			as >= 100' \
 		| samtools view -@$t -b -o $@
 
+# Select alignments with number of mismatches below a threshold.
+nm=5
+%.nm$(nm).bam: %.bam
+	samtools view -h -F4 $< \
+		| gawk -F'\t' ' \
+			/^@/ { print; next } \
+			{ nm = 999999999 } \
+			match($$0, "NM:i:([^\t]*)", x) { nm = x[1] } \
+			nm < $(nm)' \
+		| samtools view -@$t -b -o $@
+
 # Extract the query and target name from a BAM file.
 %.bam.names.tsv: %.bam
 	(printf "QName\tTName\n"; samtools view $< | cut -f1,3) >$@
@@ -372,10 +384,10 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 # Create a TSV file of molecule extents.
 %.bx.molecule.tsv: %.bx.tsv
 	mlr --tsvlite \
-		then stats1 -g BX,MI,Rname -a count,min,p50,max -f Pos,Mapq,AS \
-		then rename Pos_min,Start,Pos_max,End,Mapq_p50,Mapq_median,AS_p50,AS_median,Pos_count,Reads \
+		then stats1 -g BX,MI,Rname -a count,min,p50,max -f Pos,Mapq,AS,NM \
+		then rename Pos_min,Start,Pos_max,End,Mapq_p50,Mapq_median,AS_p50,AS_median,NM_p50,NM_median,Pos_count,Reads \
 		then put '$$Size = $$End - $$Start' \
-		then cut -o -f Rname,Start,End,Size,BX,MI,Reads,Mapq_median,AS_median \
+		then cut -o -f Rname,Start,End,Size,BX,MI,Reads,Mapq_median,AS_median,NM_median \
 		then filter '$$Reads >= 4' \
 		$< >$@
 
@@ -383,7 +395,7 @@ $(ref).%.bx.bam.atleast4.fq.gz: $(ref).%.bx.bam.bx.atleast4.txt %.bx.fq.gz
 %.bx.molecule.bed: %.bx.molecule.tsv
 	mlr --tsvlite --headerless-csv-output \
 		put '$$Start = $$Start - 1; $$End = $$End - 1' \
-		then put '$$Name = "Reads=" . $$Reads . ",Size=" . $$Size . ",Mapq=" . $$Mapq_median . ",AS=" . $$AS_median . ",BX=" . $$BX . ",MI=" . $$MI' \
+		then put '$$Name = "Reads=" . $$Reads . ",Size=" . $$Size . ",Mapq=" . $$Mapq_median . ",AS=" . $$AS_median . ",NM=" . $$NM_median . ",BX=" . $$BX . ",MI=" . $$MI' \
 		then cut -o -f Rname,Start,End,Name,Reads $< >$@
 
 # Identify misassemblies
