@@ -1,0 +1,82 @@
+---
+title: Group reads into molecules and add molecule identifiers
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of read alignments with columns Rname, Pos, Mapq, AS, NM, BX"
+    value: "molecules.bam.bx.tsv"
+    input: text
+  output_tsv:
+    label: "Output TSV file with the additional column molecule identifier MI"
+    value: "molecules.bam.bx.mi.tsv"
+    input: text
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(knitr)
+library(magrittr)
+library(readr)
+library(ggplot2)
+library(scales)
+library(tidyr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+reads_filename <- params$input_tsv
+molecules_filename <- params$output_tsv
+```
+
+# Read data
+```{r read-data, message=FALSE}
+reads_orig <- read_tsv(reads_filename) %>% filter(!is.na(BX))
+```
+
+# Count number of reads per barcode
+```{r count-reads-per-barcode}
+reads_per_barcode <- reads_orig %>% count(BX) %>% rename(Reads = n)
+```
+
+# Select barcodes with 4 or more reads
+```{r filter-barcodes}
+reads_per_barcode_threshold <- 4
+
+reads <- reads_orig %>%
+	semi_join(filter(reads_per_barcode, Reads >= reads_per_barcode_threshold), by = "BX")
+```
+
+# Group reads into molecules
+```{r group-reads-into-molecules}
+distance_threshold <- 50000
+
+molecules_orig <- reads %>%
+	arrange(Rname, BX, Pos) %>%
+	mutate(MI = cumsum(BX != lag(BX, default = "NA") | Pos - lag(Pos) >= distance_threshold))
+```
+
+# Count number of reads per molecule
+```{r count-reads-per-molecule}
+reads_per_molecule <- molecules_orig %>% count(MI) %>% rename(Reads = n)
+```
+
+# Select molecules with 4 or more reads
+```{r filter-molecules}
+reads_per_molecule_threshold <- 4
+
+molecules <- molecules_orig %>%
+	semi_join(filter(reads_per_molecule, Reads >= reads_per_molecule_threshold), by = "MI") %>%
+	mutate(MI = as.integer(factor(MI)))
+```
+
+# Write molecule identifiers to a TSV file
+```{r write-tsv}
+molecules %>% write_tsv(molecules_filename)
+```
+
+# Number of barcodes and molecules
+|           | Count |
+|-----------|-------|
+| Barcodes  | `r sum(reads_per_barcode$Reads >= reads_per_barcode_threshold)` |
+| Molecules | `r max(molecules$MI)` |
