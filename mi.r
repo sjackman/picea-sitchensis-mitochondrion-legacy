@@ -24,7 +24,7 @@ distance_threshold <- 50000
 
 molecules_orig <- reads %>%
 	arrange(Rname, BX, Pos) %>%
-	mutate(MI = cumsum(BX != lag(BX, default = "NA") | Pos - lag(Pos) >= distance_threshold))
+	mutate(MI = cumsum(BX != lag(BX, default = "NA") | Rname != lag(Rname) | Pos - lag(Pos) >= distance_threshold))
 
 # Count number of reads per molecule
 reads_per_molecule <- molecules_orig %>% count(MI) %>% rename(Reads = n)
