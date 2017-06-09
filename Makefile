@@ -777,17 +777,25 @@ $(name).longranger.basic.bx.%.fq.gz: $(name).longranger.basic.bam
 
 # Mash
 
+# Construct a sketch of a FASTA file.
+%.fa.msh: %.fa
+	mash sketch -p $t -k 32 -s 10000 -i $<
+
 # Construct a sketch of a FASTQ.gz file.
 %.fq.gz.msh: %.fq.gz
-	mash sketch -p $t -k 32 -m 2 $<
+	mash sketch -p $t -k 32 -s 10000 -m 2 $<
 
 # Construct a sketch of a list of FASTQ.gz files.
 %.fq.gz.msh: %/fq.gz.files
-	mash sketch -p $t -k 32 -m 2 -s 10000 -l $< -o $*.fq.gz
+	mash sketch -p $t -k 32 -s 10000 -m 2 -l $< -o $*.fq.gz
 
 # Compare all pairs of sketches.
 %.msh.dist.tsv: %.msh
 	mash dist $< $< >$@
+
+# Compare sketches to a reference.
+$(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
+	mash dist $^ >$@
 
 # Convert a Mash distance TSV file to a GraphViz undirected graph
 %.msh.dist.tsv.u.gv: %.msh.dist.tsv
