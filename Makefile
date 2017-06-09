@@ -406,18 +406,32 @@ nm=5
 		then put '$$Name = "Reads=" . $$Reads . ",Size=" . $$Size . ",Mapq=" . $$Mapq_median . ",AS=" . $$AS_median . ",NM=" . $$NM_median . ",BX=" . $$BX . ",MI=" . $$MI' \
 		then cut -o -f Rname,Start,End,Name,Reads $< >$@
 
-# Identify misassemblies
+# Report summary statistics of a Chromium library
+%.bx.molecule.summary.html: %.bx.molecule.tsv
+	Rscript -e 'rmarkdown::render("summary.rmd", "html_document", "$@", params = list(input_tsv="$<", output_tsv="$*.summary.tsv"))'
+
+# Identify misassemblies in psitchensiscpmt_2
 
 # Calculate molecule depth of coverage.
 psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.wgs.bam.bx.molecule.tsv %.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv
-	Rscript -e 'rmarkdown::render("molecules.rmd")'
+	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$*.breakpoints.nb.html", params = list(raw_tsv="$<", filtered_tsv="$*.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv", output_tsv="$@"))'
 
 # Determine coordinates of subsequences.
-psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv: %.fa.fai
-	Rscript -e 'rmarkdown::render("breaktigs.rmd")'
+psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv %.fa.fai
+	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_fai="$*.fa.fai", input_tsv="$<", output_tsv="$@")'
+
+# Identify misassemblies in psitchensiscpmt_4
+
+# Calculate molecule depth of coverage.
+%.psitchensis.longranger.align.bam.as100.nm5.breakpoints.tsv: %.psitchensis.longranger.align.bam.bx.molecule.tsv %.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv
+	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$*.psitchensis.longranger.align.bam.as100.nm5.breakpoints.nb.html", params = list(raw_tsv="$<", filtered_tsv="$*.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv", output_tsv="$@"))'
+
+# Determine coordinates of subsequences.
+%.breakpoints.tigs.bed: %.breakpoints.tsv psitchensiscpmt_4.fa.fai
+	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_fai="$*.fa.fai", input_tsv="$<", output_tsv="$@")'
 
 # Break scaffolds at loci not supported by molecules.
-%.breakpoints.tigs.bed.fa: %.breakpoints.tigs.bed %.fa
+%.breakpoints.tigs.bed.fa: %.breakpoints.tigs.bed psitchensiscpmt_4.fa
 	bedtools getfasta -name -fi $*.fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
 
 # igvtools
@@ -430,7 +444,7 @@ psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.ts
 
 # Convert BED to BAM.
 %.bed.bam: %.bed $(draft).fa.fai
-	awk '$$2 != $$3' $< | bedtools bedtobam -i - -g $(draft).fa.fai >$@
+	awk '$$2 != $$3' $< | bedtools bedtobam -i - -g $(draft).fa.fai | samtools sort -@$t -Obam -o $@
 
 # htsbox
 
