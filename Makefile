@@ -494,6 +494,13 @@ GwithN=6118703
 GwithoutN=6055308
 G=$(GwithoutN)
 
+# Assemble reads with ABySS 2.0.1 ABYSS.
+abyss_k=64
+abyss_e=5
+abyss_c=5
+%.abyss.k$(abyss_k).e$(abyss_e).c$(abyss_c).fa: %.fq.gz
+	$(abyssbin201)/ABYSS -v -k$(abyss_k) -e$(abyss_e) -c$(abyss_c) -o $@ $<
+
 # Assemble reads with ABySS 1.9.0.
 abyss/1.9.0/k$k/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleast4.bam.fq.gz
 	mkdir -p $(@D)
