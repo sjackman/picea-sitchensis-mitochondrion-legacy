@@ -381,6 +381,14 @@ nm=5
 %.as100.bx.tsv: %.bx.tsv
 	mlr --tsvlite filter '$$AS >= 100' $< >$@
 
+# Filter alignments by number of mismatches.
+%.nm$(nm).bx.tsv: %.bx.tsv
+	mlr --tsvlite filter '$$NM < $(nm)' $< >$@
+
+# Group reads into molecules and add molecule identifiers.
+%.bam.mi.bx.tsv: %.bam.bx.tsv
+	./mi.r $< $@
+
 # Create a TSV file of molecule extents.
 %.bx.molecule.tsv: %.bx.tsv
 	mlr --tsvlite \
