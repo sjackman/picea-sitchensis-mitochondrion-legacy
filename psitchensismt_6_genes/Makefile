@@ -2,7 +2,7 @@
 # Copyright 2016 Shaun Jackman
 
 # Name of the assembly
-name=psitchensismt.1
+name=psitchensismt_6
 
 # Number of threads
 t=64
