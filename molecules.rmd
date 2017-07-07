@@ -7,15 +7,15 @@ output:
 params:
   raw_tsv:
     label: "Input raw TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "psitchensiscpmt_2.psitchensis.longranger.wgs.bam.bx.molecule.tsv"
+    value: "assembly.psitchensis.longranger.wgs.bam.bx.molecule.tsv"
     input: text
   filtered_tsv:
     label: "Input filtered TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv"
+    value: "assembly.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv"
     input: text
-  output_breakpoints_tsv:
+  output_tsv:
     label: "Output TSV file of breakpoints"
-    value: "psitchensiscpmt_2.breakpoints.tsv"
+    value: "assembly.breakpoints.tsv"
     input: text
 ---
 
@@ -33,7 +33,7 @@ library(tidyr)
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
 molecules_filename <- params$raw_tsv
 molecules_good_filename <- params$filtered_tsv
-output_breakpoints_tsv_filename <- params$output_breakpoints_tsv
+output_breakpoints_tsv_filename <- params$output_tsv
 ```
 
 # Read data
@@ -47,18 +47,18 @@ molecules_good_orig <- read_tsv(molecules_good_filename)
 reads_threshold <- 4
 as_median_threshold <- -3
 size_threshold <- 500
-rname_threshold <- 25
+rname_only <- c("3-7", "9", "18", "25", "4001", "4002", "4003", "4004", "4005", "4006", "4007", "4008")
 
 molecules <- molecules_orig %>%
 	filter(Reads >= reads_threshold) %>%
 	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
 
 molecules_good <- molecules_good_orig %>%
-	filter(Reads >= reads_threshold, AS_median >= as_median_threshold, Size >= size_threshold, as.integer(Rname) <= rname_threshold) %>%
+	filter(Reads >= reads_threshold, AS_median >= as_median_threshold, Size >= size_threshold, Rname %in% rname_only) %>%
 	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
 ```
 
-# Write a list of good barcodes to a TSV file and a text file
+# Select a list of good barcodes
 ```{r good-barcodes}
 good_barcodes <- molecules_good %>%
 	filter(Reads >= reads_threshold, AS_median >= as_median_threshold, Size >= size_threshold) %>%
@@ -66,11 +66,6 @@ good_barcodes <- molecules_good %>%
 	summarize(Molecules = n(), Reads = sum(Reads)) %>%
 	arrange(desc(Reads)) %>%
 	ungroup()
-
-good_barcodes %>% write_tsv("psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.bx.atleast4.tsv")
-
-good_barcodes %>% select(BX) %>% arrange(BX) %>%
-	write_tsv("psitchensiscpmt_2.psitchensis.longranger.wgs.bam.as-30.bx.molecule.bx.atleast4.txt", col_names = FALSE)
 ```
 
 # Histogram of molecule size
@@ -206,7 +201,7 @@ molecules_depth_good <- molecules_good_pos %>% rename(Pos_Rname = Rname) %>% row
 	arrange(Rname, Pos)
 
 molecules_starts <- molecules %>%
-	filter(as.integer(Rname) <= rname_threshold, AS_median >= starts_as_threshold & Size >= starts_size_threshold) %>%
+	filter(Rname %in% rname_only, AS_median >= starts_as_threshold & Size >= starts_size_threshold) %>%
 	group_by(Rname, Start) %>%
 	summarize(Starts = n(), Starts_median_size = median(Size), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
 	ungroup() %>%
@@ -263,7 +258,7 @@ ggplot(molecules_starts) +
 
 # Plot misassemblies and scatter plot of start and end coordinates
 ```{r misassemblies-start-end, fig.width=7, fig.height=7}
-molecules_good %>% filter(as.integer(Rname) <= rname_threshold) %>% ggplot() +
+molecules_good %>% filter(Rname %in% rname_only) %>% ggplot() +
 	aes(x = Start, y = End, alpha = Reads) +
 	geom_point(size = 1) +
 	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
@@ -272,7 +267,7 @@ molecules_good %>% filter(as.integer(Rname) <= rname_threshold) %>% ggplot() +
 	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
 	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
 
-ggplot(molecules_good %>% filter(as.integer(Rname) <= rname_threshold)) +
+ggplot(molecules_good %>% filter(Rname %in% rname_only)) +
 	aes(x = Start, y = End) +
 	geom_bin2d(binwidth = 2000) +
 	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
@@ -313,10 +308,7 @@ ggplot_misassemblies <- function(scaffold_name) {
 
 # Plot misassemblies and molecule start and end coordinates of a scaffold
 ```{r plot-misassemblies}
-misassemblies %>%
-	arrange(as.integer(Rname)) %$%
-	unique(Rname) %>%
-	map(ggplot_misassemblies)
+rname_only %>% map(ggplot_misassemblies)
 ```
 
 # Count misasemblies per scaffold
