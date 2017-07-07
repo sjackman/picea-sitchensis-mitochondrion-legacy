@@ -1,0 +1,42 @@
+---
+title: Colour scaffolds
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of ARCS distance estimates with columns U and V"
+    value: "stem.arcs.dist.tsv"
+    input: text
+  output_tsv:
+    label: "Output TSV file of colours for those segments"
+    value: "stem.arcs.dist.colours.tsv"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(knitr)
+library(RColorBrewer)
+library(readr)
+library(tidyr)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv_filename <- params$input_tsv
+output_tsv_filename <- params$output_tsv
+```
+
+# Read data
+```{r read-data}
+counts <- read_tsv(input_tsv_filename)
+```
+
+# Colour the scaffolds
+```{r colour-scaffolds}
+colours <- counts %>%
+	separate(U, c("Scaffold", "Position"), ":", remove = FALSE) %>%
+	distinct(Scaffold, Position) %>%
+	mutate(Colour = brewer.pal(name = "Set3", n = 12)[1 + as.integer(factor(Scaffold)) %% 12])
+colours %>% write_tsv(output_tsv_filename)
+```
