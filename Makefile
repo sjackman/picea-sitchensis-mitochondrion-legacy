@@ -5,7 +5,7 @@
 name=psitchensis
 
 # Assembly of Picea sitchensis organelles
-draft=psitchensiscpmt_4
+draft=psitchensiscpmt_6
 
 # Reference genome
 ref=organelles
@@ -60,6 +60,22 @@ psitchensiscpmt_2.fa: KU215903.fa psitchensismt_2.fa
 
 # Break scaffolds at loci not supported by molecules.
 psitchensiscpmt_3.fa: psitchensiscpmt_2.breakpoints.tigs.bed.2500bp.fa
+	ln -sf $< $@
+
+# Generate the FASTA file of the scaffolds.
+psitchensiscpmt_4.path.fa: psitchensiscpmt_4.fa psitchensiscpmt_4.fa.fai psitchensiscpmt_4.path
+	MergeContigs -v -k$k -o $@ $^
+
+# Symlink the revised draft genome.
+psitchensiscpmt_5.fa: psitchensiscpmt_4.breakpoints.tigs.fa
+	ln -sf $< $@
+
+# Generate the FASTA file of the scaffolds.
+psitchensiscpmt_5.path.fa: psitchensiscpmt_5.fa psitchensiscpmt_5.fa.fai psitchensiscpmt_5.path
+	MergeContigs -v -k$k -o $@ $^
+
+# Symlink the revised draft genome.
+psitchensiscpmt_6.fa: psitchensiscpmt_5.path.fa
 	ln -sf $< $@
 
 # Entrez Direct
@@ -126,9 +142,13 @@ $(ref).%.bam: %.fq.gz $(ref).fa.bwt
 $(draft).%.sortn.bam: %.fq.gz $(draft).fa.bwt
 	bwa mem -t$t -pC $(draft).fa $< | samtools view -@$t -h -F4 -o $@
 
-# Sort a query-name-sorted BAM file by target.
-%.bam: %.sortn.bam
-	samtools sort -@$t -o $@ $<
+# Align paired-end reads to the draft genome.
+$(draft)/%.bwa.bam: $(draft)/%.fq.gz $(draft).fa.bwt
+	bwa mem -t$t -pC $(draft).fa $< | samtools view -h -F4 | samtools sort -@$t -o $@
+
+# Align sequences to the draft genome.
+$(draft)/%.fa.bwa.sam: $(draft)/%.fa $(draft).fa.bwt
+	bwa mem -t$t -xintractg $(draft).fa $< >$@
 
 # LongRanger
 
@@ -245,6 +265,10 @@ q=0.05
 %.gv.gvpack.dot.png: %.gv
 	(ccomps -x $< || true) | dot | gvpack -g | neato -s -n2 -Tpng -o $@
 
+# Render a graph to PDF using neato.
+%.gv.neato.pdf: %.gv
+	neato -Tpdf -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
+
 # Render a graph to PNG using neato.
 %.gv.neato.png: %.gv
 	neato -Tpng -Goverlap=false -Gsplines=true -Gsep=0.5 -o $@ $<
@@ -261,6 +285,10 @@ q=0.05
 
 # Sort a SAM file and produce a sorted BAM file.
 %.bam: %.sam
+	samtools sort -@$t -o $@ $<
+
+# Sort a query-name-sorted BAM file by target.
+%.bam: %.sortn.bam
 	samtools sort -@$t -o $@ $<
 
 # Index a BAM file.
@@ -420,18 +448,18 @@ psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.w
 psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv %.fa.fai
 	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_fai="$*.fa.fai", input_tsv="$<", output_tsv="$@")'
 
-# Identify misassemblies in psitchensiscpmt_4
+# Identify misassemblies
 
 # Calculate molecule depth of coverage.
 %.psitchensis.longranger.align.bam.as100.nm5.breakpoints.tsv: %.psitchensis.longranger.align.bam.bx.molecule.tsv %.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv
 	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$*.psitchensis.longranger.align.bam.as100.nm5.breakpoints.nb.html", params = list(raw_tsv="$<", filtered_tsv="$*.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv", output_tsv="$@"))'
 
 # Determine coordinates of subsequences.
-%.breakpoints.tigs.bed: %.breakpoints.tsv psitchensiscpmt_4.fa.fai
-	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_fai="$*.fa.fai", input_tsv="$<", output_tsv="$@")'
+$(draft).breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv $(draft).fa.fai
+	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_tsv="$<", input_fai="$(draft).fa.fai", output_bed="$@"))'
 
 # Break scaffolds at loci not supported by molecules.
-%.breakpoints.tigs.bed.fa: %.breakpoints.tigs.bed psitchensiscpmt_4.fa
+$(draft).breakpoints.tigs.fa: %.breakpoints.tigs.fa: %.breakpoints.tigs.bed $(draft).fa
 	bedtools getfasta -name -fi $*.fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
 
 # igvtools
@@ -549,8 +577,8 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 
 # Create a graph of linked contigs using ARCS.
 c=1
-e=5000
-r=0.220000
+e=30000
+r=0.200000
 %.c$c_e$e_r$r.arcs_original.gv %.c$c_e$e_r$r.arcs.dist.gv %.c$c_e$e_r$r.arcs.dist.tsv: %.sortn.bam $(draft).fa
 	bin/arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$e -r$r -v \
 		-f $(draft).fa \
@@ -595,6 +623,17 @@ l=10
 			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
 			| sed '1d;$$d'; \
 		mlr --tsvlite put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $<; \
+		echo '}' ) >$@
+
+# Convert an ARCS dist.p.tsv file to GraphViz format with colours.
+%.dist.p.colour.gv: %.dist.p.tsv $(draft).fa.fai $(draft).colours.tsv
+	( echo 'strict graph g {'; \
+		echo 'node[style = "filled"]'; \
+		mlr --tsvlite put -q 'print "\"" . $$Scaffold . ":" . $$Position . "\" [ fillcolor=\"" . $$Colour . "\" ]"' $(draft).colours.tsv; \
+		abyss-todot $(draft).fa.fai \
+			| gvpr -c 'N{label = sprintf("%s\\n%u bp", name, l)}' \
+			| sed '1d;$$d'; \
+		mlr --tsvlite put -q 'print "\"" . $$U . "\" -- \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $< | grep -v KU215903; \
 		echo '}' ) >$@
 
 # Add d and e records and remove the label record for abyss-scaffold.
@@ -770,6 +809,11 @@ read_length = 150
 # Extract the reads of a single barcode to a FASTQ file.
 $(name).longranger.basic.bx.%.fq.gz: $(name).longranger.basic.bam
 	samtools view -@$t -h $< $* | samtools fastq -@$t - | sed '/^@.*\/[12]$$/s/$$/ BX:Z:$*/' | $(gzip) >$@
+
+# Convert a list of barcodes in TSV format to BED format.
+%.bam.barcodes.bx.bed: %.bam.barcodes.tsv
+	mlr --tsvlite --headerless-csv-output \
+		filter '$$Reads >=4' then cut -f BX then put '$$2 = 0; $$3 = 1' $< >$@
 
 # Extract the reads of a set of barcodes to a FASTQ file.
 %.bx.fq.gz: %.bx.bed $(name).longranger.basic.bam
