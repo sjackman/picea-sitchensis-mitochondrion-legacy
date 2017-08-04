@@ -5,206 +5,114 @@ output:
   html_document:
     keep_md: true
 params:
-  raw_tsv:
-    label: "Input raw TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "breakpoints.bam.bx.molecule.tsv"
+  depth_tsv:
+    label: "Input TSV file of depth of coverage with columns Rname, Pos, Depth"
+    value: "depth.tsv"
     input: text
-  filtered_tsv:
-    label: "Input filtered TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "breakpoints.bam.good.bx.molecule.tsv"
+  starts_tsv:
+    label: "Input TSV file of molecule starts with columns Rname, Pos, Starts"
+    value: "starts.tsv"
     input: text
-  output_tsv:
+  depth_starts_tsv:
+    label: "Output TSV file of depth of coverage and molecule starts"
+    value: "depth_starts.tsv"
+    input: text
+  breakpoints_tsv:
     label: "Output TSV file of breakpoints"
     value: "breakpoints.tsv"
     input: text
 ---
 
-```{r setup}
-library(cowplot)
+```{r setup, message=FALSE}
 library(dplyr)
-library(knitr)
-library(magrittr)
+library(ggplot2)
 library(purrr)
 library(readr)
-library(ggplot2)
-library(scales)
-library(tidyr)
+library(tibble)
 
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
-molecules_filename <- params$raw_tsv
-molecules_good_filename <- params$filtered_tsv
-output_breakpoints_tsv_filename <- params$output_tsv
-
-# xxx
-molecules_filename <- "psitchensiscpmt_4.psitchensis.longranger.align.bam.bx.molecule.tsv"
-molecules_good_filename <- "psitchensiscpmt_4.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv"
-output_breakpoints_tsv_filename <- "psitchensiscpmt_4.psitchensis.longranger.align.bam.as100.nm5.breakpoints.tsv"
+depth_tsv <- params$depth_tsv
+starts_tsv <- params$starts_tsv
+depth_starts_tsv <- params$depth_starts_tsv
+breakpoints_tsv <- params$breakpoints_tsv
 ```
 
 # Read data
 ```{r read-data}
-molecules_orig <- read_tsv(molecules_filename)
-molecules_good_orig <- read_tsv(molecules_good_filename)
+depth_tsv
+depth <- read_tsv(depth_tsv, col_types = cols(Rname = col_character(), Pos = col_integer(), Depth = col_integer()))
+glimpse(depth)
+
+starts_tsv
+starts <- read_tsv(starts_tsv, col_types = cols(Rname = col_character(), Pos = col_integer(), Starts = col_integer()))
+glimpse(starts)
 ```
 
-# Filter
-```{r filter}
-reads_threshold <- 4
-as_median_threshold <- -3
-size_threshold <- 500
-rname_only <- c("18", "25", "4001", "4002", "4003", "4004", "4005", "4006", "4007", "4008") # xxx
-
-molecules <- molecules_orig %>%
-	filter(Reads >= reads_threshold) %>%
-	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
-
-molecules_good <- molecules_good_orig %>%
-	filter(Reads >= reads_threshold, AS_median >= as_median_threshold, Size >= size_threshold, Rname %in% rname_only) %>%
-	mutate(LogReadDensity = log10(Reads / ifelse(Size == 0, NA, Size)))
+# Compute statistics of depth of coverage
+```{r depth-stats}
+depth_stats <- boxplot.stats(depth$Depth, do.out = FALSE)$stats
+depth_stats <- c(depth_stats, depth_stats[4] - depth_stats[2]) %>%
+	set_names(c("Min", "Q1", "Median", "Q3", "Max", "IQR")) %>%
+	t %>% as_tibble
+depth_stats
 ```
 
-# Identify misassemblies
-```{r identify-misassemblies}
-depth_good_threshold <- 75
-pos_threshold <- 2500
-starts_as_threshold <- -30
-starts_size_threshold <- 2000
+# Determine the depth of coverage threshold
+```{r determine-depth-threshold}
+depth_threshold <- depth_stats$Min
+cat(sep = "",
+	"Median - 2 * IQR = ", depth_stats$Median - 2 * depth_stats$IQR, "\n",
+	"Q1 - 1.5 * IQR = ", depth_threshold, "\n")
+```
+
+# Join depth and starts
+```{r join-depth-starts}
+depth_starts <- right_join(depth, starts, by = c("Rname", "Pos"))
+glimpse(depth_starts)
+```
+
+# Write depth and starts to a TSV file
+```{r write-tsv}
+depth_starts_tsv
+depth_starts %>% write_tsv(depth_starts_tsv)
+```
+
+# Identify breakpoints
+```{r identify-breakpoints}
+pos_threshold <- 200
 starts_threshold <- 4
 
-molecules_good_pos <- rbind(
-		transmute(molecules_good, Rname, Pos = Start),
-		transmute(molecules_good, Rname, Pos = End)) %>%
-	distinct()
+breakpoints <- depth_starts %>%
+	filter(Pos >= pos_threshold, Starts >= starts_threshold, Depth < depth_threshold)
 
-molecules_depth_good <- molecules_good_pos %>% rename(Pos_Rname = Rname) %>% rowwise() %>%
-	do(Rname = .$Pos_Rname, Pos = .$Pos, Sizes = filter(molecules_good, Rname == .$Pos_Rname & Start <= .$Pos & End > .$Pos)$Size) %>%
-	mutate(Depth = length(Sizes), Median_size = as.numeric(median(Sizes))) %>%
-	replace_na(list(Median_size = 0)) %>%
-	unnest(Rname, Pos) %>%
-	select(Rname, Pos, Depth, Median_size, everything()) %>%
-	arrange(Rname, Pos)
-
-molecules_starts <- molecules %>%
-	Rname %in% rname_only, AS_median >= starts_as_threshold & Size >= starts_size_threshold) %>%
-	group_by(Rname, Start) %>%
-	summarize(Starts = n(), Starts_median_size = median(Size), Starts_AS_median = median(AS_median), Starts_sum_reads = sum(Reads)) %>%
-	ungroup() %>%
-	rename(Pos = Start) %>%
-	full_join(molecules_depth_good, by = c("Rname", "Pos")) %>%
-	arrange(Rname, Pos) %>%
-	fill(Depth, Median_size) %>%
-	select(Rname, Pos, Depth, Median_size, everything())
-
-misassemblies <- molecules_starts %>%
-	filter(Pos >= pos_threshold & Starts >= starts_threshold & Depth < depth_good_threshold) %>%
-	select(-Sizes)
-
-misassemblies %>% arrange(as.integer(Rname))
+glimpse(breakpoints)
 ```
 
-# Determine the threshold of molecule depth
-```{r molecule-depth-threshold}
-scaffold_sizes <- molecules_depth_good %>% group_by(Rname) %>% summarize(Size = max(Pos))
-
-trim_ends <- 5000
-molecules_depth_good_omit_ends <- molecules_depth_good %>%
-	left_join(scaffold_sizes, by = "Rname") %>%
-	filter(trim_ends <= Pos, Pos < Size - trim_ends)
-
-molecules_depth_good_omit_ends %>%
-	summarize(
-		Median = median(Depth), IQR = IQR(Depth),
-		Mean = mean(Depth), SD = sd(Depth))
-
-boxplot.stats(molecules_depth_good_omit_ends$Depth, do.out = FALSE)$stats
-
-molecules_depth_good_omit_ends %$% floor(median(Depth) - 1.5 * IQR(Depth))
+# Write breakpoints to a TSV file
+```{r write-breakponts}
+breakpoints_tsv
+breakpoints %>% write_tsv(breakpoints_tsv)
 ```
 
-# Histogram of molecule depth
-```{r molecule-depth-histogram}
-ggplot(molecules_depth_good_omit_ends) +
+# Boxplot of depth of coverage
+```{r depth-boxplot}
+ggplot(depth_stats) +
+	aes(x = NA, ymin = Min, lower = Q1, middle = Median, upper = Q3, ymax = Max) + 
+    geom_boxplot(stat = "identity") +
+	xlab("") +
+	ylab("Depth of coverage") +
+	scale_x_discrete(breaks = NULL) +
+	coord_flip()
+```
+
+# Histogram of depth of coverage
+```{r depth-histogram}
+ggplot(depth) +
 	aes(x = Depth) +
 	geom_histogram()
-```
 
-# Plot misassemblies, depth of molecule coverage and molecule starts
-```{r misassemblies-depth, fig.width=7, fig.height=7}
-ggplot(molecules_starts) +
-	facet_wrap(~ Rname, scales = "free_x") +
-	aes(x = Pos) +
-	geom_point(aes(x = Pos, y = Depth), size = 0.5) +
-	geom_point(aes(y = Starts), size = 0.5) +
-	geom_hline(yintercept = depth_good_threshold, colour = "orange", linetype = "dashed") +
-	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
-	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3))
-```
-
-# Plot misassemblies and scatter plot of start and end coordinates
-```{r misassemblies-start-end, fig.width=7, fig.height=7}
-molecules_good %>% filter(Rname %in% rname_only) %>% ggplot() +
-	aes(x = Start, y = End, alpha = Reads) +
-	geom_point(size = 1) +
-	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
-	geom_hline(aes(yintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
-	facet_wrap(~ Rname, scales = "free") +
-	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
-	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
-
-ggplot(molecules_good %>% filter(Rname %in% rname_only)) +
-	aes(x = Start, y = End) +
-	geom_bin2d(binwidth = 2000) +
-	geom_vline(aes(xintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
-	geom_hline(aes(yintercept = Pos), misassemblies, colour = "blue", linetype = "dashed") +
-	facet_wrap(~ Rname, scales = "free") +
-	scale_x_continuous(labels = unit_format(unit = "", scale = 1e-3)) +
-	scale_y_continuous(labels = unit_format(unit = "", scale = 1e-3))
-```
-
-# Plot misassemblies and molecule start and end coordinates of a scaffold
-```{r ggplot-misassemblies}
-ggplot_misassemblies <- function(scaffold_name) {
-	max_x <- max(
-		filter(molecules, Rname == scaffold_name)$End,
-		filter(molecules_starts, Rname == scaffold_name)$Pos)
-
-	scatter_plot <- molecules_good %>% filter(Rname == scaffold_name) %>% ggplot() +
-		aes(x = Start, y = End) +
-		geom_point(size = 1) +
-		geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-		geom_hline(aes(yintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-		scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x)) +
-		scale_y_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x))
-
-	plot <- molecules_starts %>% filter(Rname == scaffold_name) %>% ggplot() +
-		geom_vline(aes(xintercept = Pos), misassemblies %>% filter(Rname == scaffold_name), colour = "blue", linetype = "dashed") +
-		scale_x_continuous(labels = unit_format(unit = "kbp", scale = 1e-3), limits = c(0, max_x))
-
-	depth_plot <- plot + geom_point(aes(x = Pos, y = Depth), size = 1) +
-		geom_hline(yintercept = depth_good_threshold, colour = "orange", linetype = "dashed")
-
-	starts_plot <- plot + geom_point(aes(x = Pos, y = Starts), size = 1) +
-		geom_hline(yintercept = starts_threshold, colour = "orange", linetype = "dashed")
-
-	plot_grid(scatter_plot, depth_plot, starts_plot, ncol = 1, align = "v", rel_heights = c(3, 1, 1), labels = scaffold_name)
-}
-```
-
-# Plot misassemblies and molecule start and end coordinates of all scaffolds
-```{r plot-misassemblies}
-misassemblies %>%
-	arrange(as.integer(Rname)) %$%
-	unique(Rname) %>%
-	map(ggplot_misassemblies)
-```
-
-# Count misasemblies per scaffold
-```{r misassemblies-per-scaffold}
-misassemblies %>% count(Rname) %>% arrange(as.integer(Rname))
-```
-
-# Store molecule depth and misassemblies in a TSV file
-```{r write-tsv}
-molecules_starts %>% select(-Sizes) %>% arrange(as.integer(Rname), Pos) %>% write_tsv("molecule-depth.tsv")
-misassemblies %>% arrange(as.integer(Rname), Pos) %>% write_tsv(output_breakpoints_tsv_filename)
+depth %>% filter(depth_stats$Min <= Depth, Depth < depth_stats$Max) %>%
+ggplot() +
+	aes(x = Depth) +
+	geom_histogram()
 ```
