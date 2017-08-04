@@ -46,6 +46,12 @@ bin/aragorn_out_to_gff3.py:
 NC_010303.1.%.blastn: %.fa NC_010303.1.fa
 	blastn -subject NC_010303.1.fa -query $< -out $@
 
+# samtools
+
+# Index a FASTA file.
+%.fa.fai: %.fa
+	samtools faidx $<
+
 # BWA
 
 # Align the reads to the assembled genome
@@ -242,7 +248,7 @@ prokka/%.gff: %.fa cds_aa.prokka.fa
 # Remove the FASTA section from the Prokka GFF file
 %.prokka.gff: prokka/%.gff
 	gsed -E -e '/^##FASTA/,$$d' \
-		-e 's/gene=([^;]*)/Name=\1;&/' \
+		-e '/Name=/!s/gene=([^;]*)/Name=\1;&/' \
 		-e '/\tgene\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/;}' \
 		-e '/\tCDS\t/{/gene=/!s/ID=[^_]*_([0-9]*)/Name=orf\1;&/; s/CDS/mRNA/;p; s/mRNA/CDS/;s/Parent=[^;]*;//;s/ID=/Parent=/;}' \
 		$< >$@
@@ -431,6 +437,6 @@ gbk/%.00.gbk: %.gbk
 
 # Dependencies
 
-genes.html: $(name).gff
+genes.html: $(name).fa.fai $(name).gff
 
 repeats.html: $(name).maker.repeat.gff
