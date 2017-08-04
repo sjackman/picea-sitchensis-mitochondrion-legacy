@@ -79,6 +79,7 @@ cds_aa.fa cds_na.fa: %.fa: %.orig.fa
 		--pattern-replace 'gene=coxI' 'gene=cox1' \
 		--pattern-replace 'gene=cytb' 'gene=cob' \
 		--pattern-replace 'gene=nd(?i)' 'gene=nad' \
+		--pattern-replace 'gene=NAD' 'gene=nad' \
 		--pattern-replace 'gene=RNA_pol' 'gene=rpo' \
 		--pattern-replace 'gene=yejU' 'gene=ccmC' \
 		--pattern-replace 'gene=yejV' 'gene=ccmB' \
