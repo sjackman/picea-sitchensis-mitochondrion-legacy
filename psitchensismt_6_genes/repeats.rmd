@@ -5,9 +5,18 @@ output:
   html_document:
     keep_md: yes
     toc: yes
+params:
+  input_gff:
+    label: "Input GFF file of repeats"
+    value: "psitchensismt_6.maker.repeat.gff"
+    input: text
+  output_tsv:
+    label: "Output TSV file of summary statistics"
+    value: "psitchensismt_6.maker.repeat.gff.tsv"
+    input: text
 ---
 
-```{r Load libraries, include=FALSE}
+```{r setup}
 library(dplyr)
 library(ggplot2)
 library(knitr)
@@ -18,15 +27,17 @@ library(stringr)
 
 # Bioconductor
 library(genomeIntervals)
-```
 
-```{r knitr, include=FALSE}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
 opts_chunk$set(fig.width = 10, fig.height = 5)
+
+input_gff <- params$input_gff
+output_tsv <- params$output_tsv
 ```
 
 ```{r Load data}
 genome_size <- 6017035
-gff_all <- readGff3("pg29mt-scaffolds.maker.repeat.gff", isRightOpen = FALSE)
+gff_all <- readGff3(input_gff, isRightOpen = FALSE)
 gff <- gff_all %>% .[.$type == "match",]
 
 data <- data.frame(
@@ -98,6 +109,6 @@ ggplot(data.grouped) +
 
 # Write the tabulated data to a file
 ```{r Write the tabulated data to a file}
-write.table(data.grouped, 'pg29mt-scaffolds.repeat.gff.tsv',
+write.table(data.grouped, output_tsv,
 	quote = FALSE, sep = '\t', row.names = FALSE)
 ```
