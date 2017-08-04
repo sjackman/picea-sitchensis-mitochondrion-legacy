@@ -34,15 +34,11 @@ library(tidyr)
 library(genomeIntervals)
 
 knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+opts_chunk$set(tidy = FALSE, fig.width = 10, fig.height = 5)
 
 input_gff <- params$input_gff
 input_fai <- params$input_fai
 output_tsv <- params$output_tsv
-```
-
-```{r knitr, include=FALSE}
-knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
-opts_chunk$set(tidy = FALSE, fig.width = 10, fig.height = 5)
 ```
 
 # Gene families
@@ -371,7 +367,7 @@ data_genes %>% plot_gene_order_and_size()
 ```
 
 # Gene order and size (scaffolds >= 20 kbp)
-```{r gene-order-and-size-large, fig.width = 8.5, fig.height = 11, dpi = 300}
+```{r gene-order-and-size-large, fig.width = 8.5, fig.height = 5, dpi = 300}
 scaffold_size_threshold <- 20000
 data_genes %>% filter(ScaffoldSize >= scaffold_size_threshold) %>% plot_gene_order_and_size()
 ```
