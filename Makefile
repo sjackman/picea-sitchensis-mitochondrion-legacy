@@ -482,6 +482,10 @@ pos_threshold=200
 %.depth.starts.breakpoints.tsv: %.depth.starts.tsv
 	mlr --tsvlite filter '$$Depth < $(depth_threshold) && $$Starts >= $(starts_threshold) && $$Pos >= $(pos_threshold)' $< >$@
 
+# Identify breakpoints with low depth of coverage and high number of molecule starts.
+%.depth.starts.breakpoints.tsv: %.size$(size_threshold).bed.depth.tsv %.starts.tsv
+	Rscript -e 'rmarkdown::render("breakpoints.rmd", "html_notebook", "$*.depth.starts.breakpoints.nb.html", params = list(depth_tsv="$<", starts_tsv="$*.starts.tsv", depth_starts_tsv="$*.depth.starts.tsv", breakpoints_tsv="$@"))'
+
 # igvtools
 
 # Index a BED file.
