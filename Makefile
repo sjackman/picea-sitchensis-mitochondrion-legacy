@@ -679,6 +679,23 @@ l=10
 		mlr --tsvlite put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $<; \
 		echo '}' ) >$@
 
+# Tigmint
+
+# Create a sequence segment graph using Tigmint-ARCS.
+tigmint_e=10000
+%.c$c_e$e.arcs_original.gv %.c$c_e$(tigmint_e).tigmint.arcs.dist.gv %.c$c_e$(tigmint_e).tigmint.arcs.dist.tsv: %.sortn.bam $(draft).fa
+	bin/tigmint-arcs -s98 -c$c -l0 -z500 -m4-20000 -d0 -e$(tigmint_e) -v \
+		-f $(draft).fa \
+		-b $*.c$c_e$(tigmint_e).tigmint.arcs \
+		-g $*.c$c_e$(tigmint_e).tigmint.arcs.dist.gv \
+		--tsv=$*.c$c_e$(tigmint_e).tigmint.arcs.dist.tsv \
+		--barcode-counts=$<.barcode-counts.tsv \
+		$<
+
+# Colour the segments by the scaffold from which they originate.
+%.colours.tsv: %.psitchensis.bx.c$c_e$(tigmint_e).tigmint.arcs.dist.tsv
+	Rscript -e 'rmarkdown::render("colours.rmd", "html_document", "$*.colours.html", params = list(input_tsv="$<", output_tsv="$@"))'
+
 # Convert an ARCS dist.p.tsv file to GraphViz format with colours.
 %.dist.p.colour.gv: %.dist.p.tsv $(draft).fa.fai $(draft).colours.tsv
 	( echo 'strict graph g {'; \
