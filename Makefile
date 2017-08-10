@@ -612,7 +612,7 @@ abyss/2.0.1/k$k/kc$(kc)/%-scaffolds.fa: pglauca.%.longranger.align.bam.bx.atleas
 
 # Calculate assembly contiguity statistics with abyss-fac.
 %.stats.tsv: %.fa
-	$(abyssbin201)/abyss-fac -t500 -G$G $< >$@
+	abyss-fac -t500 -G$G $< >$@
 
 # Calculate assembly contiguity and correctness metrics with abyss-samtobreak.
 %.samtobreak.txt: %.sam
