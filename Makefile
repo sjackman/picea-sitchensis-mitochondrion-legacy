@@ -5,7 +5,7 @@
 name=psitchensis
 
 # Assembly of Picea sitchensis organelles
-draft=psitchensiscpmt_6
+draft=psitchensiscpmt_7
 
 # Reference genome
 ref=organelles
@@ -62,20 +62,24 @@ psitchensiscpmt_2.fa: KU215903.fa psitchensismt_2.fa
 psitchensiscpmt_3.fa: psitchensiscpmt_2.breakpoints.tigs.bed.2500bp.fa
 	ln -sf $< $@
 
-# Generate the FASTA file of the scaffolds.
-psitchensiscpmt_4.path.fa: psitchensiscpmt_4.fa psitchensiscpmt_4.fa.fai psitchensiscpmt_4.path
-	MergeContigs -v -k$k -o $@ $^
-
 # Symlink the revised draft genome.
 psitchensiscpmt_5.fa: psitchensiscpmt_4.breakpoints.tigs.fa
 	ln -sf $< $@
 
+# Symlink the revised draft genome.
+psitchensiscpmt_6.fa: psitchensiscpmt_5.path.fa
+	ln -sf $< $@
+
+# Fix an off-by-one error in psitchensiscpmt_6.fa
+psitchensiscpmt_7.fa: psitchensiscpmt_6.breakpoints.tigs.fa
+	sed 's/N[^N]N/NNN/g;s/NN*[ACGT]$$//' $< >$@
+
 # Generate the FASTA file of the scaffolds.
-psitchensiscpmt_5.path.fa: psitchensiscpmt_5.fa psitchensiscpmt_5.fa.fai psitchensiscpmt_5.path
+%.path.fa: %.fa %.fa.fai %.path
 	MergeContigs -v -k$k -o $@ $^
 
 # Symlink the revised draft genome.
-psitchensiscpmt_6.fa: psitchensiscpmt_5.path.fa
+psitchensiscpmt_8.fa: psitchensiscpmt_7.path.fa
 	ln -sf $< $@
 
 # Entrez Direct
