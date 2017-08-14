@@ -4,7 +4,7 @@ draft=$1
 region=$2
 bed=$1/$2.bed
 bam=$bed.bx.as100.bam.barcodes.bx.bwa.bam
-echo $2 | tr :- '\t' >$bed
+echo $2 | gsed -r 's/(.*):([0-9]*)-([0-9]*)/\1\t\2\t\3/' >$bed
 chmod -w $bed
 echo $bam.log
 exec nohup time make draft=$draft $bam.bai >$bam.log
