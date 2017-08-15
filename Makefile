@@ -683,6 +683,11 @@ l=10
 		mlr --tsvlite put -q 'print "\"" . $$U . "\" -> \"" . $$V . "\" [ best=" . $$Best_orientation . " n=" . $$Shared_barcodes . " q=" . $$q . " label=\"n=" . $$Shared_barcodes . "\\nq=" . $$q . "\" ]"' $<; \
 		echo '}' ) >$@
 
+# Convert an ARCS GraphViz file to GFA format.
+%.gv.gfa: %.gv
+	(printf 'H\tVN:Z:1.0\n'; gvpr 'N{print("S\t", name, "\t*\tLN:i:", l)}' $< | gsed -n 's/+\t/\t/p') \
+		| abyss-todot -e --gfa - $< | sed 's/*$$/0M/' >$@
+
 # Tigmint
 
 # Create a sequence segment graph using Tigmint-ARCS.
