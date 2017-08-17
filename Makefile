@@ -248,6 +248,10 @@ $(ref).$(name).longranger.wgs.bam: $(ref)_$(name)_longranger_wgs/outs/phased_pos
 %.n$n.gv: %.gv
 	gvpr 'E[n >= $n]' -o $@ $<
 
+# Filter vertices by their degree.
+%.deg3.gv: %.gv
+	gvpr -i 'N[degree >= 3]' $< >$@
+
 # Filter edges by their attribute q.
 q=0.05
 %.q$q.gv: %.gv
