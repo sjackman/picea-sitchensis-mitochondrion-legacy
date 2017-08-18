@@ -952,6 +952,24 @@ $(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
 %.miniasm.gfa: %.fa.paf %.fa
 	miniasm -p sg -12 -f $*.fa $< >$@
 
+# Unicycler
+
+# Separate the first read from an interleaved FASTQ file.
+%.1.fq.gz: %.fq.gz
+	seqtk seq -1 $< | $(gzip) >$@
+
+# Separate the second read from an interleaved FASTQ file.
+%.2.fq.gz: %.fq.gz
+	seqtk seq -2 $< | $(gzip) >$@
+
+# Assemble reads using Unicycler.
+%.unicycler/assembly.fasta: %.1.fq.gz %.2.fq.gz
+	unicycler -t$t -o $(@D) -1 $*.1.fq.gz -2 $*.2.fq.gz
+
+# Symlink the assembly.
+%.unicycler.fa: %.unicycler/assembly.fasta
+	ln -sf $< $@
+
 # Spearmint
 
 # Optimize the assembly parameters using Spearmint.
