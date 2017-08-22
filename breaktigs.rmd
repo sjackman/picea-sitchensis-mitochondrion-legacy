@@ -7,15 +7,15 @@ output:
 params:
   input_tsv:
     label: "Input TSV file of misassemblies"
-    value: "psitchensiscpmt_2.breakpoints.tsv"
+    value: "draft.path.breakpoints.tsv"
     input: text
   input_fai:
     label: "Input FAI file of scaffold sizes"
-    value: "psitchensiscpmt_2.fa.fai"
+    value: "draft.path.fa.fai"
     input: text
   output_bed:
     label: "Output BED file of breaktig coordinates"
-    value: "psitchensiscpmt_2.breakpoints.tigs.bed"
+    value: "draft.path.breakpoints.tigs.bed"
     input: text
 ---
 
@@ -49,9 +49,9 @@ bed <- rbind(
 		mutate(misassemblies, Pos = Pos - 1),
 		mutate(fai, Pos = 0L),
 		fai) %>%
-	arrange(!is.na(as.integer(Rname)), as.integer(Rname), Rname, Pos) %>%
-	mutate(Start = Pos, End = lead(Pos)) %>%
-	select(-Pos) %>%
+	mutate(Rname_int = as.integer(sub("[^0-9].*$", "", Rname))) %>%
+	arrange(!is.na(Rname_int), Rname_int, Rname, Pos) %>%
+	transmute(Rname, Start = Pos, End = lead(Pos)) %>%
 	drop_na() %>%
 	filter(Start <= End) %>%
 	mutate(Name = make_unique(Rname))
