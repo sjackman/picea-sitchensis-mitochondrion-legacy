@@ -1,0 +1,38 @@
+---
+title: Plot median depth of sequencing coverage per scaffold
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of depth of coverage statistics with columns Depth_count, Depth_p25, Depth_p50, Depth_p75, Depth_mean, Depth_stddev"
+    value: "psitchensiscpmt_7.psitchensis.bx.as100.nm5.bam.mi.bx.molecule.size500.bed.depth.seqstats.tsv"
+    input: text
+---
+
+```{r setup}
+library(dplyr)
+library(readr)
+library(ggplot2)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv <- params$input_tsv
+```
+
+# Read data
+```{r read-data}
+depth_orig <- read_tsv(input_tsv)
+depth <- depth_orig %>% filter(Rname %in% c("5001", "5002", "5003", "5004"))
+```
+
+# Median depth of coverage
+```{r median-depth-of-coverage}
+ggplot(depth) +
+	aes(x = Rname, ymin = Depth_p25, y = Depth_p50, ymax = Depth_p75) +
+	geom_point(size = 3) +
+	geom_errorbar(size = 1, width = 0.1) +
+	theme_bw(base_size = 20) + theme(panel.border = element_blank()) +
+	xlab("Scaffold") +
+	ylab("Median depth of coverage")
+```
