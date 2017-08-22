@@ -5,7 +5,7 @@
 name=psitchensis
 
 # Assembly of Picea sitchensis organelles
-draft=psitchensiscpmt_7
+#draft=psitchensiscpmt_x
 
 # Reference genome
 ref=organelles
@@ -42,7 +42,45 @@ install-deps:
 	brew tap homebrew/science
 	brew install arcs bcftools bedtools bwa edirect fastqc miller samtools seqtk
 
-.PHONY: all clean install-deps
+psitchensiscpmt_1:
+	$(MAKE) psitchensiscpmt_1.fa draft=NA
+
+psitchensiscpmt_2:
+	$(MAKE) psitchensiscpmt_2.fa \
+		draft=abyss/2.0.1/k75/kc4/psitchensis-scaffolds \
+		c=1 e=50000 r=0.220000 a=0.999999 l=1
+
+psitchensiscpmt_3:
+	$(MAKE) psitchensiscpmt_3.fa draft=psitchensiscpmt_2
+
+psitchensiscpmt_3_fix:
+	$(MAKE) psitchensiscpmt_3.path.breakpoints.tigs.rename.fa draft=psitchensiscpmt_3.path
+
+psitchensiscpmt_4:
+	$(MAKE) psitchensiscpmt_4.fa draft=psitchensiscpmt_3
+
+psitchensiscpmt_5:
+	$(MAKE) psitchensiscpmt_5.fa draft=psitchensiscpmt_4
+
+psitchensiscpmt_6:
+	$(MAKE) psitchensiscpmt_6.fa draft=psitchensiscpmt_5
+
+psitchensiscpmt_7:
+	$(MAKE) psitchensiscpmt_7.fa draft=psitchensiscpmt_6
+
+psitchensiscpmt_8:
+	$(MAKE) psitchensiscpmt_8.fa draft=psitchensiscpmt_7
+
+.PHONY: all clean install-deps \
+	psitchensiscpmt_1 \
+	psitchensiscpmt_2 \
+	psitchensiscpmt_3 \
+	psitchensiscpmt_3_fix \
+	psitchensiscpmt_4 \
+	psitchensiscpmt_5 \
+	psitchensiscpmt_6 \
+	psitchensiscpmt_7 \
+	psitchensiscpmt_8
 .DELETE_ON_ERROR:
 .SECONDARY:
 
@@ -59,7 +97,19 @@ psitchensiscpmt_2.fa: KU215903.fa psitchensismt_2.fa
 	cat $^ >$@
 
 # Break scaffolds at loci not supported by molecules.
-psitchensiscpmt_3.fa: psitchensiscpmt_2.breakpoints.tigs.bed.2500bp.fa
+psitchensiscpmt_3.fa: psitchensiscpmt_2.breakpoints.tigs.2500bp.fa
+	ln -sf $< $@
+
+# Correct a misassembly in scaffold 3-7 and rename two scaffolds.
+psitchensiscpmt_3.path.breakpoints.tigs.rename.bed: psitchensiscpmt_3.path.breakpoints.tigs.bed
+	sed 's/3-7-1/4011/;s/3-7-2/3-7/' $< >$@
+
+# Generate a FASTA file of the corrected misassembly in scaffold 3-7.
+psitchensiscpmt_3.path.breakpoints.tigs.rename.fa: psitchensiscpmt_3.path.breakpoints.tigs.rename.bed psitchensiscpmt_3.path.fa
+	bedtools getfasta -name -fi psitchensiscpmt_3.path.fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
+
+# Symlink the revised draft genome.
+psitchensiscpmt_4.fa: psitchensiscpmt_3.path.breakpoints.tigs.rename.fa
 	ln -sf $< $@
 
 # Symlink the revised draft genome.
@@ -70,9 +120,9 @@ psitchensiscpmt_5.fa: psitchensiscpmt_4.breakpoints.tigs.fa
 psitchensiscpmt_6.fa: psitchensiscpmt_5.path.fa
 	ln -sf $< $@
 
-# Fix an off-by-one error in psitchensiscpmt_6.fa
+# Symlink the revised draft genome.
 psitchensiscpmt_7.fa: psitchensiscpmt_6.breakpoints.tigs.fa
-	sed 's/N[^N]N/NNN/g;s/NN*[ACGT]$$//' $< >$@
+	ln -sf $< $@
 
 # Generate the FASTA file of the scaffolds.
 %.path.fa: %.fa %.fa.fai %.path
@@ -443,10 +493,6 @@ nm=5
 # Calculate molecule depth of coverage.
 psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.wgs.bam.bx.molecule.tsv %.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv
 	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$*.breakpoints.nb.html", params = list(raw_tsv="$<", filtered_tsv="$*.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv", output_tsv="$@"))'
-
-# Determine coordinates of subsequences.
-psitchensiscpmt_2.breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv %.fa.fai
-	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_fai="$*.fa.fai", input_tsv="$<", output_tsv="$@")'
 
 # Identify misassemblies
 
