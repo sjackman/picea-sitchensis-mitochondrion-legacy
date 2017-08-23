@@ -1016,6 +1016,16 @@ $(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
 %.unicycler.fa: %.unicycler/assembly.fasta
 	ln -sf $< $@
 
+# Bandage
+
+# Render a GFA file to PNG using Bandage.
+%.gfa.png: %.gfa
+	Bandage image $< $@
+
+# Render a GFA file to SVG using Bandage.
+%.gfa.svg: %.gfa
+	Bandage image $< $@
+
 # Spearmint
 
 # Optimize the assembly parameters using Spearmint.
