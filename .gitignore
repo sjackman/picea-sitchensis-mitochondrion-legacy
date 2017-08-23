@@ -1,11 +1,35 @@
+*.agp
 *.bam
 *.bam.bai
+*.bed
+*.bed.idx
+*.csv
+*.dkvp
 *.fa
 *.fa.fai
+*.fa.gz
+*.fasta
+*.fastqc
 *.fq.gz
+*.gbff
+*.gfa
+*.gff
+*.gv
 *.log
+*.orig
+*.paf
+*.pdf
+*.png
+*.pyc
+*.sam
+*.svg
 *.tsv
+*.txt
 *.vcf.gz
+*.vcf.gz.csi
+
+# ABySS
+*.path
 
 # BWA
 *.fa.amb
@@ -13,4 +37,20 @@
 *.fa.bwt
 *.fa.pac
 *.fa.sa
+
+# Long Ranger
+*_longranger_align
+*_longranger_basic
+*_longranger_wgs
+refdata-*
+
+# RMarkdown
+*.html
+*.md
+*_files
 .Rproj.user
+
+abyss/
+bin/
+fastq_path
+spearmint-*/
