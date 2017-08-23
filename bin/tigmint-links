@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+file=$1
+shift 1
+for i in "$@"; do
+	printf "\n=== $i ===\n\n"
+	grep -A2 '"'$i'"' $file \
+		| egrep -v '^--$|fillcolor' \
+		| paste -d ' ' - - - \
+		| awk -F'\t' '{print $2 "\t" $7 "\t" $5}' \
+		| sort
+done
