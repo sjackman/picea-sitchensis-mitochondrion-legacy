@@ -1014,7 +1014,7 @@ $(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
 
 # Symlink the assembly.
 %.unicycler.fa: %.unicycler/assembly.fasta
-	ln -sf $< $@
+	seqtk seq $< >$@
 
 # Bandage
 
