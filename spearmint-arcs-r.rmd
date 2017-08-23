@@ -1,0 +1,88 @@
+---
+title: Optimize ARCS using Spearmint for Picea sitchensis mitochondrion
+author: Shaun Jackman
+output:
+  html_document:
+    keep_md: true
+params:
+  input_tsv:
+    label: "Input TSV file of parameters and target metric"
+    value: "spearmint-arcs.tsv"
+    input: select
+    choices: ["spearmint-arcs.tsv", "spearmint-arcs-r.tsv"]
+---
+
+```{r load-libraries, message=FALSE}
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(knitr)
+library(readr)
+library(tidyr)
+```
+
+```{r setup}
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+input_tsv <- params$input_tsv
+```
+
+# Read data
+```{r read-data}
+spearmint_arcs <- read_tsv(input_tsv, col_types = cols(
+  c = col_integer(),
+  e = col_integer(),
+  r = col_double(),
+  a = col_double(),
+  l = col_integer(),
+  NG50 = col_integer(),
+  Index = col_integer()))
+```
+
+# Report the assembly with the maximum NG50
+```{r max-NG50}
+spearmint_arcs %>% filter(NG50 == max(NG50)) %>% arrange_(.dots = colnames(.))
+```
+
+# Plot NG50 vs each parameter
+```{r NG50}
+ggplot(spearmint_arcs %>%
+		gather("Variable", "Value", -NG50)) +
+	aes(x = Value, y = NG50) +
+	facet_wrap(~Variable, scales = "free") +
+	geom_point()
+```
+
+# Plot NG50 vs `r`
+```{r NG50-vs-r}
+ggplot(spearmint_arcs) +
+	aes(x = r, y = NG50,
+	  colour = a == max(a) & c == min(c) & e == max(e) & l == min(l)) +
+	geom_point() +
+  scale_colour_manual(values = c("FALSE" = "grey", "TRUE" = "black")) +
+  theme_grey(14) +
+  theme(legend.position="bottom")
+```
+
+# Tidy data
+```{r tidy-data}
+spearmint_arcs_tall <- spearmint_arcs %>%
+	gather("Variable", "Value", -Index)
+```
+
+# Pairs plot
+```{r pairsplot}
+ggpairs(spearmint_arcs %>% select(-Index))
+```
+
+# Boxplot
+```{r boxplot}
+ggplot(spearmint_arcs_tall) +
+	aes(x = 0, y = Value) +
+	facet_wrap(~Variable, scales = "free") +
+	geom_boxplot()
+```
+
+# Table of parameters and metric
+```{r parameters-metric-table}
+spearmint_arcs
+```
