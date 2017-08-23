@@ -71,6 +71,9 @@ psitchensiscpmt_7:
 psitchensiscpmt_8:
 	$(MAKE) psitchensiscpmt_8.fa draft=psitchensiscpmt_7
 
+psitchensiscpmt_9:
+	$(MAKE) psitchensiscpmt_9.fa draft=psitchensiscpmt_8
+
 .PHONY: all clean install-deps \
 	psitchensiscpmt_1 \
 	psitchensiscpmt_2 \
@@ -80,7 +83,8 @@ psitchensiscpmt_8:
 	psitchensiscpmt_5 \
 	psitchensiscpmt_6 \
 	psitchensiscpmt_7 \
-	psitchensiscpmt_8
+	psitchensiscpmt_8 \
+	psitchensiscpmt_9
 .DELETE_ON_ERROR:
 .SECONDARY:
 
@@ -132,6 +136,10 @@ psitchensiscpmt_7.fa: psitchensiscpmt_6.breakpoints.tigs.fa
 psitchensiscpmt_8.fa: psitchensiscpmt_7.path.fa
 	ln -sf $< $@
 
+psitchensiscpmt_9.fa: psitchensiscpmt_8/8003.bed.bx.as100.bam.barcodes.bx.unicycler.l50k.fa psitchensiscpmt_8.fa
+	(seqmagick convert --line-wrap=0 --pattern-exclude '^(41|4005-2|8003)$$' psitchensiscpmt_8.fa -; \
+		seqtk rename $< 900 $<) >$@
+
 # Entrez Direct
 
 # Fetch data from NCBI.
@@ -163,6 +171,10 @@ ALWZ.concat.fa: ALWZ.900.concat.fa ALWZ.901.concat.fa ALWZ.902.concat.fa ALWZ.90
 	cat $^ >$@
 
 # seqtk
+
+# Filter a FASTA file by length.
+%.l50k.fa: %.fa
+	seqtk seq -L50000 $< >$@
 
 # Interleave paired-end reads
 %.fq.gz: %_1.fq.gz %_2.fq.gz
