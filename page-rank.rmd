@@ -1,0 +1,72 @@
+---
+title: Compute the PageRank scores of a graph
+author: Shaun Jackman
+---
+
+```{r setup, message=FALSE}
+library(DiagrammeR)
+library(dplyr)
+library(knitr)
+library(magrittr)
+library(readr)
+library(tibble)
+
+knit_print.data.frame <- function(x, ...) kable(x) %>% paste(collapse = "\n") %>% asis_output
+```
+
+# Read the data
+```{r read-data}
+fai <- read_tsv("psitchensiscpmt_7.fa.fai", col_names = c("Rname", "Size"), col_types = "ci___")
+graph_table_orig <- read_tsv("psitchensiscpmt_7.psitchensis.bx.c1_e30000_r0.200000.arcs.dist.p.tsv")
+```
+
+# Add the scaffold sizes to the table of edges
+```{r add-size}
+q_threshold <- 0.05
+Size_threshold <- 20000
+Shared_barcodes_threshold <- 20
+
+graph_table <- graph_table_orig %>%
+	mutate(
+		Uname = substr(U, 1, nchar(U) - 1),
+		Vname = substr(V, 1, nchar(V) - 1)) %>%
+	left_join(rename(fai, Uname = Rname, Usize = Size), by = "Uname") %>%
+	left_join(rename(fai, Vname = Rname, Vsize = Size), by = "Vname") %>%
+	filter(
+		Usize >= Size_threshold,
+		Vsize >= Size_threshold,
+		Shared_barcodes >= Shared_barcodes_threshold,
+		q < q_threshold,
+		Best_orientation)
+```
+
+# Create the graph
+```{r create-graph}
+vertices_table <- graph_table %$%
+	tibble(label = unique(c(U, V))) %>%
+	arrange(label)
+
+vertices <- vertices_table %$% create_node_df(n = nrow(.), label = label)
+
+edges <- graph_table %>%
+	left_join(rename(vertices, from = id), by = c("U" = "label")) %>%
+	left_join(rename(vertices, to = id), by = c("V" = "label")) %$%
+	create_edge_df(from = from, to = to, n = Shared_barcodes, q = q)
+
+graph <- create_graph(vertices, edges)
+```
+
+# Compute the PageRank scores
+```{r pagerank}
+Nscaffolds <- nrow(vertices_table) / 2
+Nscaffolds
+Nscaffolds <- 9
+vertices_table %>%
+	add_column(Pagerank = Nscaffolds * get_pagerank(graph, directed = TRUE, damping = 0.9999)$pagerank) %>%
+	filter(Pagerank >= 0.001)
+```
+
+# Render the graph
+```{r render-graph}
+render_graph(graph)
+```
