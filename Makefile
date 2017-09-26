@@ -137,7 +137,7 @@ psitchensiscpmt_8.fa: psitchensiscpmt_7.path.fa
 	ln -sf $< $@
 
 psitchensiscpmt_9.fa: psitchensiscpmt_8/8003.bed.bx.as100.bam.barcodes.bx.unicycler.l50k.fa psitchensiscpmt_8.fa
-	(seqmagick convert --line-wrap=0 --pattern-exclude '^(41|4005-2|8003)$$' psitchensiscpmt_8.fa -; \
+	(seqmagick convert --line-wrap=0 --pattern-exclude '^(41|55|4005-2|8003)$$' psitchensiscpmt_8.fa -; \
 		seqtk rename $< 900 $<) >$@
 
 # Entrez Direct
