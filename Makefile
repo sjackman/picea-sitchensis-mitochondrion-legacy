@@ -512,6 +512,10 @@ psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.w
 %.psitchensis.longranger.align.bam.as100.nm5.breakpoints.tsv: %.psitchensis.longranger.align.bam.bx.molecule.tsv %.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv
 	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$*.psitchensis.longranger.align.bam.as100.nm5.breakpoints.nb.html", params = list(raw_tsv="$<", filtered_tsv="$*.psitchensis.longranger.align.bam.as100.nm5.bx.molecule.tsv", output_tsv="$@"))'
 
+# Exploratory data analysis of molecule size.
+%.bx.as100.nm5.bam.mi.bx.molecules.nb.html: %.bx.as100.nm5.bam.mi.bx.molecule.tsv %.bx.bam.mi.bx.molecule.tsv
+	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$@", params = list(raw_tsv="$*.bx.bam.mi.bx.molecule.tsv", filtered_tsv="$<", output_tsv="$*.bx.as100.nm5.bam.mi.bx.molecule.breakpoints.tsv"))'
+
 # Determine coordinates of subsequences.
 $(draft).breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv $(draft).fa.fai
 	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_tsv="$<", input_fai="$(draft).fa.fai", output_bed="$@"))'
