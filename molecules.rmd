@@ -19,7 +19,7 @@ params:
     input: text
 ---
 
-```{r setup}
+```{r setup, message=FALSE}
 library(cowplot)
 library(dplyr)
 library(knitr)
@@ -38,8 +38,21 @@ output_breakpoints_tsv_filename <- params$output_tsv
 
 # Read data
 ```{r read-data}
-molecules_orig <- read_tsv(molecules_filename)
-molecules_good_orig <- read_tsv(molecules_good_filename)
+column_types <- cols(
+  Rname = col_character(),
+  Start = col_integer(),
+  End = col_integer(),
+  Size = col_integer(),
+  BX = col_character(),
+  MI = col_integer(),
+  Reads = col_integer(),
+  Mapq_median = col_integer(),
+  AS_median = col_integer(),
+  NM_median = col_integer()
+)
+
+molecules_orig <- read_tsv(molecules_filename, col_types = column_types)
+molecules_good_orig <- read_tsv(molecules_good_filename, col_types = column_types)
 ```
 
 # Filter
@@ -47,7 +60,11 @@ molecules_good_orig <- read_tsv(molecules_good_filename)
 reads_threshold <- 4
 as_median_threshold <- -3
 size_threshold <- 500
-rname_only <- c("3-7", "9", "18", "25", "4001", "4002", "4003", "4004", "4005", "4006", "4007", "4008")
+scaffold_size_threshold <- 20000
+scaffold_size <- molecules_orig %>% group_by(Rname) %>% summarize(Size = max(End))
+rname_only <- scaffold_size %>%
+	filter(Size >= scaffold_size_threshold, !is.na(as.integer(Rname))) %$%
+	Rname
 
 molecules <- molecules_orig %>%
 	filter(Reads >= reads_threshold) %>%
