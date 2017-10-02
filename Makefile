@@ -606,8 +606,8 @@ pos_threshold=200
 
 # Convert PAF format to TSV format
 %.paf.tsv: %.paf
-	(printf "qname\tqlength\tqstart\tqend\tstrand\ttname\ttlength\ttstart\ttend\tdivergence\tmapq\tattributes\n"; \
-		awk 'NF == 12' $<) >$@
+	(printf "Qname\tQlength\tQstart\tQend\tStrand\tTname\tTlength\tTstart\tTend\tMatches\tLength\tMapq\tAttributes\n"; \
+		cat $<) >$@
 
 # bcftools
 
@@ -1012,7 +1012,9 @@ $(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
 
 # Assemble sequences using miniasm
 %.miniasm.gfa: %.fa.paf %.fa
-	miniasm -p sg -12 -f $*.fa $< >$@
+	( \
+		seqtk seq -C psitchensiscpmt_10.fa | abyss-todot --gfa; \
+		/home/sjackman/src/miniasm/miniasm -p sg -12 -e0 -n0 -f $*.fa $< ) >$@
 
 # Unicycler
 
