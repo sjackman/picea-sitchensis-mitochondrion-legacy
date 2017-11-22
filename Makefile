@@ -1034,6 +1034,26 @@ $(draft).%.msh.$(draft).fa.msh.dist.tsv: $(draft).%.msh $(draft).fa.msh
 %.unicycler.fa: %.unicycler/assembly.fasta
 	seqtk seq $< >$@
 
+# Reassemble targeted assemblies.
+
+psitchensiscpmt_10.fa: \
+		psitchensiscpmt_8/8001_0_1000000.bed.bx.as100.bam.barcodes.bx.unicycler.fa \
+		psitchensiscpmt_8/8001_1000000_2000000.bed.bx.as100.bam.barcodes.bx.unicycler.polish9.fa \
+		psitchensiscpmt_8/8001_2000000_3000000.bed.bx.as100.bam.barcodes.bx.unicycler.fa \
+		psitchensiscpmt_8/8001_3000000_4000000.bed.bx.as100.bam.barcodes.bx.unicycler.fa \
+		psitchensiscpmt_8/8001_4000000_4413118.bed.bx.as100.bam.barcodes.bx.unicycler.fa \
+		psitchensiscpmt_8/8002.bed.bx.as100.bam.barcodes.bx.unicycler.fa \
+		psitchensiscpmt_8/8003.bed.bx.as100.bam.barcodes.bx.unicycler.fa
+	( cat KU215903.fa; \
+		seqmagick convert --name-prefix 8001_0_ $(wordlist 1, 1, $^) -; \
+		seqmagick convert --name-prefix 8001_1_ $(wordlist 2, 2, $^) -; \
+		seqmagick convert --name-prefix 8001_2_ $(wordlist 3, 3, $^) -; \
+		seqmagick convert --name-prefix 8001_3_ $(wordlist 4, 4, $^) -; \
+		seqmagick convert --name-prefix 8001_4_ $(wordlist 5, 5, $^) -; \
+		seqmagick convert --name-prefix 8002_ $(wordlist 6, 6, $^) -; \
+		seqmagick convert --name-prefix 8003_ $(wordlist 7, 7, $^) - ) \
+	| seqtk seq -L10000 >$@
+
 # Bandage
 
 # Render a GFA file to PNG using Bandage.
