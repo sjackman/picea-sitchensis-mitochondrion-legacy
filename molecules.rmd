@@ -7,15 +7,15 @@ output:
 params:
   raw_tsv:
     label: "Input raw TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "assembly.psitchensis.longranger.wgs.bam.bx.molecule.tsv"
+    value: "draft.psitchensis.bx.bam.mi.bx.molecule.tsv"
     input: text
   filtered_tsv:
     label: "Input filtered TSV file of read alignments with columns Rname, Start, End, Size, BX, MI, Reads, Mapq_median, AS_median"
-    value: "assembly.psitchensis.longranger.wgs.bam.as-30.bx.molecule.tsv"
+    value: "draft.psitchensis.bx.as100.nm5.bam.mi.bx.molecule.tsv"
     input: text
   output_tsv:
     label: "Output TSV file of breakpoints"
-    value: "assembly.breakpoints.tsv"
+    value: "draft.psitchensis.bx.as100.nm5.bam.mi.bx.molecule.breakpoints.tsv"
     input: text
 ---
 
