@@ -331,9 +331,13 @@ q=0.05
 %.gv.dot.pdf: %.gv
 	dot -Tpdf -o $@ $<
 
+# Render a graph to PDF using fdp.
+%.gv.fdp.pdf: %.gv
+	gvpr -c 'E{weight = n / 100.0}' $< | fdp -Tpdf -o $@
+
 # Render a graph to PNG using dot and gvpack.
-%.gv.gvpack.dot.png: %.gv
-	(ccomps -x $< || true) | dot | gvpack -g | neato -s -n2 -Tpng -o $@
+%.gv.gvpack.dot.pdf: %.gv
+	sed 's/q=0.000000"/"/;s/q=0"/"/' $< | (ccomps -x || true) | dot | gvpack -g | neato -s -n2 -Tpdf -o $@
 
 # Render a graph to PDF using neato.
 %.gv.neato.pdf: %.gv
