@@ -46,6 +46,8 @@ fai <- read_tsv(fai_filename, col_names = c("Rname", "Pos"), col_types = "ci---"
 
 # Determine coordinates of subsequences
 ```{r transform}
+size_threshold <- 200
+
 bed <- rbind(
 		mutate(misassemblies, Pos = Pos - 1L),
 		mutate(fai, Pos = 0L),
@@ -54,7 +56,7 @@ bed <- rbind(
 	arrange(!is.na(Rname_int), Rname_int, Rname, Pos) %>%
 	transmute(Rname, Start = Pos, End = lead(Pos)) %>%
 	drop_na() %>%
-	filter(Start <= End) %>%
+	filter(End - Start >= size_threshold) %>%
 	mutate(Name = make_unique(Rname))
 ```
 
