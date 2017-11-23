@@ -37,7 +37,8 @@ output_bed_filename <- params$output_bed
 
 # Read the data
 ```{r read-data}
-misassemblies_orig <- read_tsv(misassemblies_filename, col_types = cols(Rname = col_character()))
+misassemblies_orig <- read_tsv(misassemblies_filename,
+	col_types = cols(Rname = col_character(), Pos = col_integer()))
 misassemblies <- misassemblies_orig %>% select(Rname, Pos)
 
 fai <- read_tsv(fai_filename, col_names = c("Rname", "Pos"), col_types = "ci---")
@@ -46,7 +47,7 @@ fai <- read_tsv(fai_filename, col_names = c("Rname", "Pos"), col_types = "ci---"
 # Determine coordinates of subsequences
 ```{r transform}
 bed <- rbind(
-		mutate(misassemblies, Pos = Pos - 1),
+		mutate(misassemblies, Pos = Pos - 1L),
 		mutate(fai, Pos = 0L),
 		fai) %>%
 	mutate(Rname_int = as.integer(sub("[^0-9].*$", "", Rname))) %>%
