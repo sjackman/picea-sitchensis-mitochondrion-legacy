@@ -521,12 +521,12 @@ psitchensiscpmt_2.breakpoints.tsv: %.breakpoints.tsv: %.psitchensis.longranger.w
 	Rscript -e 'rmarkdown::render("molecules.rmd", "html_notebook", "$@", params = list(raw_tsv="$*.bx.bam.mi.bx.molecule.tsv", filtered_tsv="$<", output_tsv="$*.bx.as100.nm5.bam.mi.bx.molecule.breakpoints.tsv"))'
 
 # Determine coordinates of subsequences.
-$(draft).breakpoints.tigs.bed: %.breakpoints.tigs.bed: %.breakpoints.tsv $(draft).fa.fai
+%.breakpoints.tigs.bed: %.breakpoints.tsv $(draft).fa.fai
 	Rscript -e 'rmarkdown::render("breaktigs.rmd", "html_notebook", "$*.breakpoints.tigs.nb.html", params = list(input_tsv="$<", input_fai="$(draft).fa.fai", output_bed="$@"))'
 
 # Break scaffolds at loci not supported by molecules.
-$(draft).breakpoints.tigs.fa: %.breakpoints.tigs.fa: %.breakpoints.tigs.bed $(draft).fa
-	bedtools getfasta -name -fi $*.fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
+%.breakpoints.tigs.fa: %.breakpoints.tigs.bed $(draft).fa
+	bedtools getfasta -name -fi $(draft).fa -bed $< | sed 's/::/ /;s/^NN*//;s/NN*$$//' >$@
 
 # Identify breakpoints
 
@@ -559,6 +559,13 @@ pos_threshold=200
 # Identify breakpoints with low depth of coverage and high number of molecule starts.
 %.depth.starts.breakpoints.tsv: %.size$(size_threshold).bed.depth.tsv %.starts.tsv
 	Rscript -e 'rmarkdown::render("breakpoints.rmd", "html_notebook", "$*.depth.starts.breakpoints.nb.html", params = list(depth_tsv="$<", starts_tsv="$*.starts.tsv", depth_starts_tsv="$*.depth.starts.tsv", breakpoints_tsv="$@"))'
+
+# Break scaffolds at regions of low long read coverage.
+
+%.bedgraph.breakpoints.tsv: $(draft).fa.fai %.bedgraph
+	gawk 'BEGIN { print "Rname\tPos" } \
+		ARGIND == 1 { len[$$1] = $$2; next } \
+		$$4 == 0 && $$2 > 0 && $$3 < len[$$1] { print $$1 "\t" 1+$$2 "\n" $$1 "\t" 1+$$3 }' $^ >$@
 
 # igvtools
 
